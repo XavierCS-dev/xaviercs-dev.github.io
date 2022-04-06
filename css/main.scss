@@ -31,8 +31,47 @@ a {
     }
 
     nav {
+        
         display: none;
+        position: fixed;
+        z-index: 99999;
+        width: 60%;
+        right: 0;
+        top: 0;
+        background: var(--primary-color);
+        height: 100vh;
+        padding: 1em;
+        ul.primary-nav {
+            margin-top: 4em;
+        }
+
+        li {
+            a {
+                color: white;
+                text-decoration: none;
+                display: block;
+                padding: 0.5em;
+                font-size: 1.5em;
+                text-align: center;
+
+                &:hover {
+                    font-weight: bold;
+                }
+            }
+        }
+
+        .menu-exit {
+            float: right;
+            margin: 0.5em;
+            cursor: pointer;
+        }
+
+        .enable-block {
+            display: block;
+        }
     }
+
+
     
     .container {
         display: flex;
@@ -41,6 +80,10 @@ a {
 
     .menu-nav {
         cursor: pointer;
+    }
+
+    .menu-nav {
+        display: block;
     }
 
 }
@@ -107,7 +150,7 @@ ul {
     margin: 0;
     padding: 0;
     h2 {
-        display: auto;
+        display: block;
         margin: 0;
         padding-top: 1em;
     }
@@ -152,6 +195,7 @@ ul {
     .current-project-header {
         right: 10%;
         left: 10%;
+        display: block;
         position: absolute;
         z-index: 100;
         text-shadow: 5px 5px 10px black;
