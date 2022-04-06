@@ -44,7 +44,7 @@ a {
   right: 0;
   top: 0;
   background: var(--primary-color);
-  height: 100vh;
+  height: 100%;
   padding: 1em;
 }
 
