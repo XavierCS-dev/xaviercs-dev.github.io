@@ -1,0 +1,201 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans&display=swap');
+:root {
+    --primary-color: #26543d;
+}
+
+body {
+    background: #f2f2f2;
+    margin: 0;
+    padding: 0;
+    font-family: 'DM Sans';
+}
+a {
+    text-decoration: none;
+}
+
+.navbar {
+    background: var(--primary-color);
+    padding: 1em;
+    box-shadow: 0px 4px 20px black;
+    .logo {
+        text-decoration: none;
+        font-weight: bold;
+        color: white;
+        font-size: 2em;
+        .letter-X {
+            color: #5e7740;
+        }
+        .letter-C {
+            color: #5e7740;
+        }
+    }
+
+    nav {
+        display: none;
+    }
+    
+    .container {
+        display: flex;
+        place-content: space-between;
+    }    
+
+    .menu-nav {
+        cursor: pointer;
+    }
+
+}
+
+a {
+    color: white;
+}
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.hero {
+    position: relative;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+    .container {
+        .left-column {
+            position: absolute;
+            top: 20%;
+            left: 10%;
+            right: 10%;
+            z-index: 100;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 5px 5px 10px black;
+            vertical-align: middle;
+        }
+
+        .right-column-desktop {
+            // hide esp32 until window size is greater...
+            display: none;
+        }
+
+        .left-column-desktop {
+            // Hide desktop right title until window size is greater
+            display: none;
+        }
+
+        .micro-c-image {
+            display: flex;
+            padding: 0;
+            position: relative;
+            text-align: center;
+            color:white;
+            width: 100%;
+            height: 25em;
+            object-fit:cover;
+            z-index: -128;
+            filter: brightness(60%);
+        }
+    }
+}
+
+.past-projects {
+    box-shadow: 0px 4px 20px 4px black;
+    background: var(--primary-color);
+    color: white;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    h2 {
+        display: auto;
+        margin: 0;
+        padding-top: 1em;
+    }
+
+    .container {
+        display: auto;
+        padding: 1em;
+
+        .mobile-past-projects {
+            li {
+                font-weight: normal;
+                margin: 1em;
+                padding: 0.8em;
+                background-color: rgba($color: black, $alpha: 0.2);
+                border-radius: 5px;
+            }
+        }
+
+        .desktop-past-projects {
+            display: none;
+        }
+
+        
+    }
+}
+
+.current-project {
+    position: relative;
+    text-align: center;
+    text-decoration: none;
+    color: white;
+    padding: 0;
+    margin: 0;
+
+    .current-project-header-desktop {
+        display: none;
+        // Hide the regular header completely when switching to desktop mode
+        // Move the call to action button to the right
+    }
+
+
+    .current-project-header {
+        right: 10%;
+        left: 10%;
+        position: absolute;
+        z-index: 100;
+        text-shadow: 5px 5px 10px black;
+        font-weight: bold;
+    }
+    .proj-preview {
+        position: relative;
+        display: flex;
+        width: 100%;
+        object-fit:cover;
+        z-index: -128;
+        filter: brightness(60%);
+    }
+    
+    .project-cta {
+        top: 50%;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        -webkit-transform: translateX(-50%);
+        -moz-transform: translateX(-50%);
+        z-index: 100;
+        background-color: rgba($color: #5e7740, $alpha: 0.7);
+        height: 3em;
+        width: 12em;
+        border-radius: 1em;
+
+        .about-project-cta {
+            position: relative;
+            top: 15%;
+            vertical-align: middle;
+            text-decoration: none;
+            font-size: 1.5em;
+        }
+    }
+}
+
+.credits {
+    background: var(--primary-color);
+    color: #5e7740;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    .design {
+        text-align: left;
+    }
+}
