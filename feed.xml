@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2023-07-27T09:03:12+00:00</updated><id>/feed.xml</id><title type="html">XavierCS</title><subtitle>Personal Blog and Portfolio</subtitle><entry><title type="html">Running Rust on a PicoW</title><link href="/pico-w/raspberry-pi/rust/embedded/2022/10/25/Embedded-Rust-on-Pico-W.html" rel="alternate" type="text/html" title="Running Rust on a PicoW" /><published>2022-10-25T00:00:00+00:00</published><updated>2022-10-25T00:00:00+00:00</updated><id>/pico-w/raspberry-pi/rust/embedded/2022/10/25/Embedded-Rust-on-Pico-W</id><content type="html" xml:base="/pico-w/raspberry-pi/rust/embedded/2022/10/25/Embedded-Rust-on-Pico-W.html"><![CDATA[<p>The Raspberry Pi PicoW is a powerful and inexpensive microcontroller with wireless support. However, when trying to run the classic “blinky” example from <a href="https://github.com/rp-rs/rp-hal/tree/main/boards/rp-pico">rp-hal</a>, you may have discovered that it does not work. This is because the onboard LED (GPIO25) must be accessed through the wireless controller. A port of the driver is being written <a href="https://github.com/embassy-rs/cyw43">as we speak</a>.</p>
+
+<p>Fret not however, as it is still possible to access most of the other GPIO with rp-hal. In this article, you will learn how to setup a Rust development environment
+for the Pi Pico/W, and blink 3 LEDs in a controlled pattern. If you are intent on using the wireless chip, you may want to look into <a href="https://rust-lang.github.io/rust-bindgen/">creating your own bindings</a> or using <a href="https://www.youtube.com/watch?v=zSWkrpu8KBA">both C and Rust together</a>.</p>
+
+<p>This article assumes you have basic developer utilities such as git, gcc and a text editor / IDE installed. It is also geared towards Linux however you should be able to follow along with Windows and MacOS</p>
+
+<h2 id="the-setup">The Setup</h2>
+
+<p>In this case I will be using CLion as my IDE, however this does not matter as the setup only depends on regular cargo. We are also going to be using Rustup as part of the installation process. You can install Rustup with:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">--proto</span> <span class="s1">'=https'</span> <span class="nt">--tlsv1</span>.2 <span class="nt">-sSf</span> https://sh.rustup.rs | sh
+</code></pre></div></div>
+
+<p>or run the installer if you are on windows. You are also going to want to make sure Rustup is up-to-date:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rustup self update
+rustup update stable
+</code></pre></div></div>
+
+<p>Now to install the essential components we’ll need to compile and run code for the Pi Pico. Firstly we are going to want to add the cross compilation target for ARM Cortex-M0/+/M1 because chances are, you aren’t writing a program with a device utilising those cores:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rustup target add thumbv6m-none-eabi
+</code></pre></div></div>
+
+<p>Next we are going to want to install elf2uf2-rs which will automatically convert the ELF files rustc produces into uf2 files and load them onto a pi pico connected to your PC via USB:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cargo <span class="nb">install </span>elf2uf2-rs <span class="nt">--locked</span>
+</code></pre></div></div>
+
+<p>Make sure to install flip-link, the reason why we need this will be explained further on, but long story short, it stops the stack from running into the data segment.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cargo <span class="nb">install </span>flip-link
+</code></pre></div></div>
+
+<h2 id="the-environment">The Environment</h2>
+
+<p>We will use the cargo project kindly crafted by some fellow Rust developers <a href="https://github.com/rp-rs/rp2040-project-template">here</a>.</p>
+
+<p>First we will make a copy of the template:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/rp-rs/rp2040-project-template
+</code></pre></div></div>
+
+<p>Now open the cargo project in your favourite IDE or text editor. You will be met with quite a few different files, some of which may be unfamiliar to you. Don’t worry, not all of them are relevant to us and I will try my best to explain what is. The file structure should look something like this:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.
+├── build.rs
+├── .cargo
+│   └── config.toml
+├── Cargo.lock
+├── Cargo.toml
+├── CODE_OF_CONDUCT.md
+├── debug_probes.md
+├── Embed.toml
+├── .github
+│   └── workflows
+│       └── ci_checks.yml
+├── memory.x
+├── README.md
+├── src
+│   └── main.rs
+└── .vscode
+    ├── launch.json
+    └── settings.json
+</code></pre></div></div>
+
+<p>Firstly I would like to draw your attention to something we are already somewhat familiar with: “.cargo/config.toml”. <code class="language-plaintext highlighter-rouge">config.toml</code> contains the config for the cargo build system for this specific project. We actually want to make a change to this file, because by default, it assumes we are using probe-run as our runner, but we are going to be using elf2uf2-rs. So change:</p>
+
+<div class="language-toml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="py">runner</span> <span class="p">=</span> <span class="s">"probe-run --chip RP2040"</span>
+<span class="c"># runner = "cargo embed"</span>
+<span class="c"># runner = "elf2uf2-rs -d"</span>
+</code></pre></div></div>
+
+<p>to</p>
+
+<div class="language-toml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># runner = "probe-run --chip RP2040"</span>
+<span class="c"># runner = "cargo embed"</span>
+<span class="py">runner</span> <span class="p">=</span> <span class="s">"elf2uf2-rs -d"</span>
+</code></pre></div></div>
+
+<h2 id="whats-all-this">What’s all this?</h2>
+
+<p>If you aren’t interested in the details, you may skip ahead to “Breadboard Setup”.</p>
+
+<p>Just below where we set our runner, you should see a structure <code class="language-plaintext highlighter-rouge">rustflags = [..]</code>. These are simply custom flags to pass to the compiler upon being invoked. Firstly you can see each line has 2 arguments, with <code class="language-plaintext highlighter-rouge">-C</code> being the first on each line. <code class="language-plaintext highlighter-rouge">-C</code> is a rustc flag that allows you to specify codegen options such as:</p>
+
+<ul>
+  <li>Which core model to use</li>
+  <li>How many codegen units the crate is split into</li>
+  <li>Platform security features</li>
+  <li>Linker arguments and a host of other features.</li>
+</ul>
+
+<p>I will go over the 4 linker arguments at the top and why they are needed. If you wish to learn about the code-size optimisations, there are a tonne of easy to find online resources which you can learn from, as the config.toml file already gives a good high level view of what they are.</p>
+
+<h3 id="flip-link">flip-link</h3>
+
+<p>Unfortunately, Rust programs using the <code class="language-plaintext highlighter-rouge">cortex-m-rt</code> crate aren’t necessarily memory safe even without <code class="language-plaintext highlighter-rouge">unsafe</code> blocks. This is because in the default memory layout for programs written for ARM Cortex-M processors, the stack grows downwards which, in the case of an overflow, would cause the stack to collide with the data segment. <code class="language-plaintext highlighter-rouge">flip-link</code> fixes this problem by placing the stack below the data region, so when the stack overflows, it means memory is full and creates a hardware exception instead. You can learn more about <code class="language-plaintext highlighter-rouge">flip-link</code> <a href="https://github.com/knurling-rs/flip-link">here</a>.</p>
+
+<h3 id="nmagic">nmagic</h3>
+
+<p>The nmagic flag tells the linker (lld for ARM platform targets) to not page align sections, only link with static libraries, and to mark the output as NMAGIC if the output supports unix style magic numbers.</p>
+
+<h3 id="tlinkx">Tlink.x</h3>
+
+<p>Tlink.x is a custom linker script for the <code class="language-plaintext highlighter-rouge">cortex-m-rt</code> crate, which you can find more about in the “Dependencies” section.</p>
+
+<h3 id="tdefmtx">Tdefmt.x</h3>
+
+<p>Tdefmt.x is a custom linker script for the <code class="language-plaintext highlighter-rouge">de-fmt</code> framework, which you can find more about in the “Dependencies” section.</p>
+
+<h3 id="build-target">Build Target</h3>
+
+<div class="language-toml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nn">[build]</span>
+<span class="py">target</span> <span class="p">=</span> <span class="s">"thumbv6m-none-eabi"</span>
+</code></pre></div></div>
+
+<p>This is quite simple to understand, <code class="language-plaintext highlighter-rouge">thumbv6m</code> specifies we are building for an ARM Cortex M0/+/M1 (M0+ in our case), <code class="language-plaintext highlighter-rouge">none</code> means we are building for a free standing environment (No OS), <code class="language-plaintext highlighter-rouge">eabi</code> or Embedded Application Binary interface defines things such as how data types are laid out in memory, how program initialisation functions, and how other such things are accessed. EABI is the default tool chain application binary interface for ARM. You can learn more about ABIs <a href="https://en.wikipedia.org/wiki/Application_binary_interface">here</a>.</p>
+
+<h3 id="buildrs">Build.rs</h3>
+
+<p>The file is already commented with an explanation that explains it fairly well, but to summarise, it copies the <code class="language-plaintext highlighter-rouge">memory.x</code> file from the project root to where the linker can always find it. In our case we won’t really need it, but it is still useful to have for more complicated projects.</p>
+
+<h3 id="memoryx">Memory.x</h3>
+
+<p>The memory.x file specifies the memory region information of the target platform. The memory available to the device must be specified by the RAM and FLASH regions, but in the case, we also have the BOOT2 region, which is where the rp2040-boot2 second-stage bootloader will go. The text and read-only data will go into the FLASH region,  the blocking starting symbol (bss, static variables which are declared but not have been assigned a value) and data segments will go into the RAM region.</p>
+
+<h3 id="dependencies">Dependencies</h3>
+
+<p>Now looking at the <code class="language-plaintext highlighter-rouge">/Cargo.toml</code> file, we have 7 dependencies that come enabled by default.</p>
+
+<ul>
+  <li>The <code class="language-plaintext highlighter-rouge">cortex-m</code> <a href="https://docs.rs/cortex-m/latest/cortex_m/">crate</a> provides low level access to Cortex-M processors allowing access to core peripherals and registers and also allowing the manipulation of interrupt mechanisms.</li>
+  <li>The <code class="language-plaintext highlighter-rouge">cortex-m-rt</code> <a href="https://docs.rs/cortex-m-rt/latest/cortex_m_rt/">crate</a> provides startup code and a minimal runtime for Cortex-M microcontrollers.</li>
+  <li>The <code class="language-plaintext highlighter-rouge">embedded-hal</code> <a href="https://docs.rs/embedded-hal/latest/embedded_hal/">crate</a> is a hardware abstraction layer (HAL) that seeks to erase device specific details by providing a minimal, zero-cost API.
+    <ul>
+      <li>A HAL allows a programmer to interact with hardware with a simplified interface.</li>
+    </ul>
+  </li>
+  <li>The <code class="language-plaintext highlighter-rouge">de-fmt</code> <a href="https://crates.io/crates/defmt">crate</a> is a (blazingly fast 🚀) logging framework for embedded devices.</li>
+  <li>The <code class="language-plaintext highlighter-rouge">de-fmt-rtt</code> <a href="https://crates.io/crates/defmt-rtt">crate</a> allows the transmission of <code class="language-plaintext highlighter-rouge">de-fmt</code> log messages over the Real Time Transfer Protocol (RTP). The RTP uses UDP to transfer data and is usually used for streaming media.</li>
+  <li>The <code class="language-plaintext highlighter-rouge">panic-probe</code><a href="https://crates.io/crates/panic-probe">crate</a> is a panic handler which tells our code what to do upon panic. In this case it exists probe-run with an error code. However we will be using elf2uf2 as our runner.
+    <ul>
+      <li>Keep in mind we are using elf2uf2 to keep things simple, <code class="language-plaintext highlighter-rouge">probe-run</code> is an incredibly useful debugging tool, it cannot be overstated, learn more about it <a href="https://github.com/knurling-rs/probe-run">here</a>. If you haven’t already, make sure you read the <a href="https://docs.rust-embedded.org/book">Rust Embedded Book</a> after you have read this article.</li>
+    </ul>
+  </li>
+  <li>The <code class="language-plaintext highlighter-rouge">rp-pico</code> <a href="https://crates.io/crates/rp-pico">crate</a> provides board support for the Pi Pico which includes <code class="language-plaintext highlighter-rouge">rp2040-hal</code> but also configures the pins of the RP2040 micro-controller to better match how it is wired on the Pico.</li>
+</ul>
+
+<h2 id="breadboard-setup">Breadboard Setup</h2>
+
+<p><img src="https://www.dropbox.com/s/13slwrt5mo931v4/pico_setup.jpg?raw=1" alt="image" /></p>
+
+<p>Key:</p>
+<ul>
+  <li>Wire connection: -</li>
+  <li>LED connection: +
+    <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GND        USB
+ |    GP0       VBUS
+ |    GP1       VSYS
+ |----GND       GND
+ |    GP2       3V3_EN
+ |++++GP3       3V3(OUT)
+ |++++GP4       ADC_VREF
+ |++++GP5       GP28
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="the-code">The Code</h2>
+
+<p>You may have alreadt taken a peak at <code class="language-plaintext highlighter-rouge">main.rs</code>, and wow! There is a lot to get through. What you see here is likely different to what you have in your <code class="language-plaintext highlighter-rouge">main.rs</code> currently, this is because I have added some code to blink 3 LEDs in a controlled fashion, which I will also explain.</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="nd">#![no_std]</span>
+<span class="nd">#![no_main]</span></code></pre></figure>
+
+<p>At the very top of the file you can see two crate level attributes. <code class="language-plaintext highlighter-rouge">!#[no_std]</code> simply tells Rust to not link the standard library and instead link to the <code class="language-plaintext highlighter-rouge">core</code> crate. The <code class="language-plaintext highlighter-rouge">libcore</code> crate is platform-agnostic but only has part of the functionality of the <code class="language-plaintext highlighter-rouge">std</code> crate.</p>
+
+<p><code class="language-plaintext highlighter-rouge">!#[no_main]</code> simply means we will not be using the standard main function, and will specify our own entry point.</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="nd">#[entry]</span>
+<span class="k">fn</span> <span class="nf">main</span><span class="p">()</span> <span class="k">-&gt;</span> <span class="o">!</span> <span class="p">{</span></code></pre></figure>
+
+<p>Since we don’t have the usual Rust entry function, we use the <code class="language-plaintext highlighter-rouge">#[entry]</code> macro from the <code class="language-plaintext highlighter-rouge">cortex_m_rt</code> crate to specify one. The entry macro must appear in the dependency graph exactly once. The function specified will be called by the reset handler once RAM has been initialised, and the FPU has been enabled <a href="https://docs.rs/cortex-m-rt-macros/0.1.5/cortex_m_rt_macros/attr.entry.html">if applicable</a>.</p>
+
+<p>You may notice that our main function returns <code class="language-plaintext highlighter-rouge">!</code>. If you haveven’t seen it before, <code class="language-plaintext highlighter-rouge">!</code> means the function does not return. In our case, we don’t want it to return, because that means the program will end, which is not what we want.</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="k">let</span> <span class="k">mut</span> <span class="n">pac</span> <span class="o">=</span> <span class="nn">pac</span><span class="p">::</span><span class="nn">Peripherals</span><span class="p">::</span><span class="nf">take</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+<span class="k">let</span> <span class="n">core</span> <span class="o">=</span> <span class="nn">pac</span><span class="p">::</span><span class="nn">CorePeripherals</span><span class="p">::</span><span class="nf">take</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+<span class="k">let</span> <span class="k">mut</span> <span class="n">watchdog</span> <span class="o">=</span> <span class="nn">Watchdog</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="n">pac</span><span class="py">.WATCHDOG</span><span class="p">);</span>
+<span class="k">let</span> <span class="n">sio</span> <span class="o">=</span> <span class="nn">Sio</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="n">pac</span><span class="py">.SIO</span><span class="p">);</span></code></pre></figure>
+
+<p><code class="language-plaintext highlighter-rouge">pac::Peripherals::take().unwrap()</code> and <code class="language-plaintext highlighter-rouge">let core = pac::CorePeripherals::take().unwrap();</code> simply get all the peripherals as an instance of a struct, wrapped in an <code class="language-plaintext highlighter-rouge">Option&lt;T&gt;</code> enum, and returns it. This method can only be called sucessfully once, and includes modules such as the Memory Protection Unit and System Control Block.</p>
+
+<p><code class="language-plaintext highlighter-rouge">let mut watchdog = Watchdog::new(pac.WATCHDOG);</code> gets a <code class="language-plaintext highlighter-rouge">Watchdog</code> timer instance and is used to detect and recover from malfunctions.</p>
+
+<p><code class="language-plaintext highlighter-rouge">let sio = Sio::new(pac.SIO);</code> Gets a single-cycle I/O block. The Cortex-M0+ implements a memory mapped single-cycle I/O port for access to peripherals, but the I/O port <a href="https://developer.arm.com/documentation/dui0662/b/Cortex-M0--Peripherals/Single-cycle-I-O-Port">does <em>not</em> support code execution</a>.</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="k">let</span> <span class="n">external_xtal_freq_hz</span> <span class="o">=</span> <span class="mi">12_000_000u32</span><span class="p">;</span>
+<span class="k">let</span> <span class="n">clocks</span> <span class="o">=</span> <span class="nf">init_clocks_and_plls</span> <span class="p">(</span>
+    <span class="n">external_xtal_freq_hz</span><span class="p">,</span>
+    <span class="n">pac</span><span class="py">.XOSC</span><span class="p">,</span>
+    <span class="n">pac</span><span class="py">.CLOCKS</span><span class="p">,</span>
+    <span class="n">pac</span><span class="py">.PLL_SYS</span><span class="p">,</span>
+    <span class="n">pac</span><span class="py">.PLL_USB</span><span class="p">,</span>
+    <span class="o">&amp;</span><span class="k">mut</span> <span class="n">pac</span><span class="py">.RESETS</span><span class="p">,</span>
+    <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Watchdog</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nf">.ok</span><span class="p">()</span>
+<span class="nf">.unwrap</span><span class="p">()</span></code></pre></figure>
+
+<p>Wow, there is quite a lot to <code class="language-plaintext highlighter-rouge">unpac</code> here. <code class="language-plaintext highlighter-rouge">let external_xtal_freq_hz = 12_000_000u32;</code> specifies the crystal frequency of the Pi Pico. The clock of the Pi Pico is controlled by a crystal oscillator, which you can learn more about <a href="https://www.electronics-tutorials.ws/oscillator/crystal.html">here</a>.</p>
+
+<p><code class="language-plaintext highlighter-rouge">init_clocks_and_plls()</code> initialises the clocks and PLLs, then returns a <code class="language-plaintext highlighter-rouge">ClocksManager</code> instance wrapped in a <code class="language-plaintext highlighter-rouge">Result&lt;T,E&gt;</code> enum. A PLL allows a circuit board to synchronise its clock with an external timing signal.</p>
+
+<p>Overall, into the function we pass: external crystal frequency, the crystal oscillator, the clocks, PLL for the system clock (133MHz) and PLL for the USB reference clock (48MHz). We also pass in the RESETS and watchdog timer. To better understand how all these components work on the Pi Pico, I recommend reading the <a href="https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf">datasheet</a>.</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="k">let</span> <span class="k">mut</span> <span class="n">delay</span> <span class="o">=</span> <span class="nn">cortex_m</span><span class="p">::</span><span class="nn">delay</span><span class="p">::</span><span class="nn">Delay</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="n">core</span><span class="py">.SYST</span><span class="p">,</span> <span class="n">clocks</span><span class="py">.system_block</span><span class="nf">.freq</span><span class="p">()</span><span class="nf">.to_HZ</span><span class="p">());</span></code></pre></figure>
+
+<p>The above code creates a delay driver instance using the SysTick which is a timer that is part of the Cortex-M0+ <a href="https://www.motioncontroltips.com/what-is-nested-vector-interrupt-control-nvic/">NVIC</a> controller.</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="k">let</span> <span class="n">pins</span> <span class="o">=</span> <span class="nn">bsp</span><span class="p">::</span><span class="nn">Pins</span><span class="p">::</span><span class="nf">new</span> <span class="p">(</span>
+    <span class="n">pac</span><span class="py">.IO_BANK0</span><span class="p">,</span>
+    <span class="n">pac</span><span class="py">.PADS_BANK0</span><span class="p">,</span>
+    <span class="n">sio</span><span class="py">.gpio_bank0</span><span class="p">,</span>
+    <span class="o">&amp;</span><span class="k">mut</span> <span class="n">pac</span><span class="py">.RESETS</span>
+<span class="p">);</span></code></pre></figure>
+
+<p><code class="language-plaintext highlighter-rouge">bsp::Pins::new()</code> creates a <code class="language-plaintext highlighter-rouge">Pins</code> instance, used for interfacing with the Raspberry Pi Pico pins. In this case we pass in all the banks, and the RESETS. An IO pin is part of a specific IO bank. For example, the GPIO pins are found in the gpio bank.</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="k">let</span> <span class="k">mut</span> <span class="n">gpio5</span> <span class="o">=</span> <span class="n">pins</span><span class="py">.gpio5</span><span class="nf">.into_push_pull_output</span><span class="p">();</span>
+<span class="k">let</span> <span class="k">mut</span> <span class="n">gpio5</span> <span class="o">=</span> <span class="n">pins</span><span class="py">.gpio4</span><span class="nf">.into_push_pull_output</span><span class="p">();</span>
+<span class="k">let</span> <span class="k">mut</span> <span class="n">gpio5</span> <span class="o">=</span> <span class="n">pins</span><span class="py">.gpio3</span><span class="nf">.into_push_pull_output</span><span class="p">();</span></code></pre></figure>
+
+<p>The above code is rather simple, it just sets 3 pins into push pull output state. This means the pins can either be ON (high) or OFF (low).</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="k">loop</span> <span class="p">{</span>
+    <span class="n">gpio5</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">gpio5</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">gpio4</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">gpio5</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">gpio4</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">gpio5</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">gpio3</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">gpio5</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">gpio5</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">gpio4</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">gpio5</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+    <span class="n">gpio3</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">gpio4</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">gpio5</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>This is the main loop that will never terminate. Here we are blinking the LEDs (settings the pins high/low for on/off) in a controlled fashion. The pattern in which they will blink may already be obvious to you just looking at the code. <code class="language-plaintext highlighter-rouge">set_high()</code> and <code class="language-plaintext highlighter-rouge">set_low()</code> returns a <code class="language-plaintext highlighter-rouge">Result&lt;T,E&gt;</code> because writing to the GPIO registers could fail. There is a 500ms delay so we can see the LEDs blinking at a reasonable pace.</p>
+
+<h2 id="voila">Voila!</h2>
+
+<p>Here is the full code:</p>
+
+<figure class="highlight"><pre><code class="language-rust" data-lang="rust"><span class="cd">//! Blinks the LED on a Pico board</span>
+<span class="cd">//!</span>
+<span class="cd">//! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.</span>
+<span class="nd">#![no_std]</span>
+<span class="nd">#![no_main]</span>
+
+<span class="k">use</span> <span class="nn">bsp</span><span class="p">::</span><span class="n">entry</span><span class="p">;</span>
+<span class="k">use</span> <span class="nn">defmt</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+<span class="k">use</span> <span class="n">defmt_rtt</span> <span class="k">as</span> <span class="n">_</span><span class="p">;</span>
+<span class="k">use</span> <span class="nn">embedded_hal</span><span class="p">::</span><span class="nn">digital</span><span class="p">::</span><span class="nn">v2</span><span class="p">::</span><span class="n">OutputPin</span><span class="p">;</span>
+<span class="k">use</span> <span class="n">panic_probe</span> <span class="k">as</span> <span class="n">_</span><span class="p">;</span>
+
+<span class="c1">// Provide an alias for our BSP so we can switch targets quickly.</span>
+<span class="c1">// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.</span>
+<span class="k">use</span> <span class="n">rp_pico</span> <span class="k">as</span> <span class="n">bsp</span><span class="p">;</span>
+<span class="c1">// use sparkfun_pro_micro_rp2040 as bsp;</span>
+
+<span class="k">use</span> <span class="nn">bsp</span><span class="p">::</span><span class="nn">hal</span><span class="p">::{</span>
+    <span class="nn">clocks</span><span class="p">::{</span><span class="n">init_clocks_and_plls</span><span class="p">,</span> <span class="n">Clock</span><span class="p">},</span>
+    <span class="n">pac</span><span class="p">,</span>
+    <span class="nn">sio</span><span class="p">::</span><span class="n">Sio</span><span class="p">,</span>
+    <span class="nn">watchdog</span><span class="p">::</span><span class="n">Watchdog</span><span class="p">,</span>
+<span class="p">};</span>
+
+<span class="nd">#[entry]</span>
+<span class="k">fn</span> <span class="nf">main</span><span class="p">()</span> <span class="k">-&gt;</span> <span class="o">!</span> <span class="p">{</span>
+    <span class="nd">info!</span><span class="p">(</span><span class="s">"Program start"</span><span class="p">);</span>
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">pac</span> <span class="o">=</span> <span class="nn">pac</span><span class="p">::</span><span class="nn">Peripherals</span><span class="p">::</span><span class="nf">take</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="k">let</span> <span class="n">core</span> <span class="o">=</span> <span class="nn">pac</span><span class="p">::</span><span class="nn">CorePeripherals</span><span class="p">::</span><span class="nf">take</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">watchdog</span> <span class="o">=</span> <span class="nn">Watchdog</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="n">pac</span><span class="py">.WATCHDOG</span><span class="p">);</span>
+    <span class="k">let</span> <span class="n">sio</span> <span class="o">=</span> <span class="nn">Sio</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="n">pac</span><span class="py">.SIO</span><span class="p">);</span>
+
+    <span class="c1">// External high-speed crystal on the pico board is 12Mhz</span>
+    <span class="k">let</span> <span class="n">external_xtal_freq_hz</span> <span class="o">=</span> <span class="mi">12_000_000u32</span><span class="p">;</span>
+    <span class="k">let</span> <span class="n">clocks</span> <span class="o">=</span> <span class="nf">init_clocks_and_plls</span><span class="p">(</span>
+        <span class="n">external_xtal_freq_hz</span><span class="p">,</span>
+        <span class="n">pac</span><span class="py">.XOSC</span><span class="p">,</span>
+        <span class="n">pac</span><span class="py">.CLOCKS</span><span class="p">,</span>
+        <span class="n">pac</span><span class="py">.PLL_SYS</span><span class="p">,</span>
+        <span class="n">pac</span><span class="py">.PLL_USB</span><span class="p">,</span>
+        <span class="o">&amp;</span><span class="k">mut</span> <span class="n">pac</span><span class="py">.RESETS</span><span class="p">,</span>
+        <span class="o">&amp;</span><span class="k">mut</span> <span class="n">watchdog</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="nf">.ok</span><span class="p">()</span>
+    <span class="nf">.unwrap</span><span class="p">();</span>
+
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">delay</span> <span class="o">=</span> <span class="nn">cortex_m</span><span class="p">::</span><span class="nn">delay</span><span class="p">::</span><span class="nn">Delay</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="n">core</span><span class="py">.SYST</span><span class="p">,</span> <span class="n">clocks</span><span class="py">.system_clock</span><span class="nf">.freq</span><span class="p">()</span><span class="nf">.to_Hz</span><span class="p">());</span>
+
+    <span class="k">let</span> <span class="n">pins</span> <span class="o">=</span> <span class="nn">bsp</span><span class="p">::</span><span class="nn">Pins</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span>
+        <span class="n">pac</span><span class="py">.IO_BANK0</span><span class="p">,</span>
+        <span class="n">pac</span><span class="py">.PADS_BANK0</span><span class="p">,</span>
+        <span class="n">sio</span><span class="py">.gpio_bank0</span><span class="p">,</span>
+        <span class="o">&amp;</span><span class="k">mut</span> <span class="n">pac</span><span class="py">.RESETS</span><span class="p">,</span>
+    <span class="p">);</span>
+
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">gpio5</span> <span class="o">=</span> <span class="n">pins</span><span class="py">.gpio5</span><span class="nf">.into_push_pull_output</span><span class="p">();</span>
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">gpio4</span> <span class="o">=</span> <span class="n">pins</span><span class="py">.gpio4</span><span class="nf">.into_push_pull_output</span><span class="p">();</span>
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">gpio3</span> <span class="o">=</span> <span class="n">pins</span><span class="py">.gpio3</span><span class="nf">.into_push_pull_output</span><span class="p">();</span>
+
+    <span class="k">loop</span> <span class="p">{</span>
+        <span class="n">gpio5</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+        <span class="n">gpio5</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">gpio4</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+        <span class="n">gpio5</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+        <span class="n">gpio4</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">gpio5</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">gpio3</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+        <span class="n">gpio5</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+        <span class="n">gpio5</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">gpio4</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+        <span class="n">gpio5</span><span class="nf">.set_high</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+        <span class="n">gpio3</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">gpio4</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">gpio5</span><span class="nf">.set_low</span><span class="p">()</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="n">delay</span><span class="nf">.delay_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>Now, plug the Pi Pico into your computer while holding the BOOTSEL button. Once your computer has detected the Pico as a storage device, use <code class="language-plaintext highlighter-rouge">cargo run</code> and then your Pi should disconnect from your computer and start blinking the LEDs in a predictable fashion, given your board setup is correct.</p>]]></content><author><name></name></author><category term="pico-w" /><category term="raspberry-pi" /><category term="rust" /><category term="embedded" /><summary type="html"><![CDATA[The Raspberry Pi PicoW is a powerful and inexpensive microcontroller with wireless support. However, when trying to run the classic “blinky” example from rp-hal, you may have discovered that it does not work. This is because the onboard LED (GPIO25) must be accessed through the wireless controller. A port of the driver is being written as we speak.]]></summary></entry><entry><title type="html">Welcome to XavierCyber!</title><link href="/xaviercyber/xavier/jekyll/ruby/html/css/github-pages/ssg/text/2022/07/22/Welcome-to-XavierCyber.html" rel="alternate" type="text/html" title="Welcome to XavierCyber!" /><published>2022-07-22T00:00:00+00:00</published><updated>2022-07-22T00:00:00+00:00</updated><id>/xaviercyber/xavier/jekyll/ruby/html/css/github-pages/ssg/text/2022/07/22/Welcome-to-XavierCyber</id><content type="html" xml:base="/xaviercyber/xavier/jekyll/ruby/html/css/github-pages/ssg/text/2022/07/22/Welcome-to-XavierCyber.html"><![CDATA[<p>Hi, and welcome to XavierCyber.com. Today we will discuss how this website is put together,
+what it will be used for, and potential future content.</p>
+
+<h2 id="how-this-website-is-constructed">How this website is constructed</h2>
+
+<p>At the time of writing, the amount of CSS and HTML written by myself is very minimal, though this will definitely change as I update the site and add necessary functionality.
+The heavy lifting has been done by a combination of the <a href="https://jekyllrb.com/">Jekyll</a> Static Site Generator (SSG) and the beautiful <a href="https://github.com/kitian616/jekyll-TeXt-theme">TeXt Theme</a>. UPDATE: Now using <a href="https://github.com/jeffreytse/jekyll-theme-yat">Yat!</a></p>
+
+<h3 id="static-site-generators-ssgs">Static Site Generators (SSGs)</h3>
+
+<p>Static Site Generators or SSGs generate full static websites with HTML and CSS using HTML/CSS templates, and content such as images or text. SSGs often form part of <a href="https://www.cloudflare.com/en-gb/learning/performance/what-is-jamstack/">“JAMstack”</a>.</p>
+
+<p>Static websites are simple websites that
+are mostly made up of HTML, CSS and Javascript, and always load the same way, as opposed to a dynamic website, which may change due to factors such as time or location.
+This gives static sites an advantage in speed and predictability, for both the user and the host. The lack of a database also significantly increases the security of static sites.</p>
+
+<p>In fact, static websites are so fast, many services such as Github via <a href="https://pages.github.com/">GitHub Pages</a>, offer free hosting for static sites. Coincidentally (or not) Github Pages runs on Jekyll, and hosts this website!</p>
+
+<h3 id="jekyll">Jekyll</h3>
+
+<p>Jekyll is a Static Site Generator written in Ruby with the goal of creating fast and beautiful blog-aware static websites without the need for databases.
+Jekyll is Free and Open Source Software (FOSS) used by companies such as <a href="https://jekyllrb.com/showcase/">Spotify, Mozilla, Twitch and Github</a> for creating functional static sites.</p>
+
+<p>A huge advantage of Jekyll which made it my first choice for this website is the fact that it is blog-aware. This means that Jekyll makes it easy to utilise custom layouts for pages and articles
+as well as take advantage of permalinks, tags and categories to improve the look of the website and boost SEO. You may have seen on the home page that all the posts are added and come with
+a preview automagically! The way Jekyll does this is by utilising variables to copy and paste content from markdown files.</p>
+
+<p>For this site, I am using the custom TeXt theme, which comes with its own layouts, categories and conventions, and have most of the CSS and HTML written for me.</p>
+
+<p>The beauty of this setup is creating articles and site pages is incredibly easy. In order to do so, you must first create a markdown file with the date and name separated by dashes, either
+in the main folder, or the “_posts” folder. For example:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2022-07-22-Welcome-to-XavierCyber.md
+</code></pre></div></div>
+
+<p>Once you have done that, you must then add variables such as the title, category and type to the top of the file, so Jekyll and your layout know how to display the page. In the case of this page,
+the variables look something like this:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>---
+title: Welcome to XavierCyber!
+type: article
+aside:
+    toc: false
+tags: XavierCyber Xavier Jekyll Ruby HTML CSS Github-Pages SSG TeXt
+article_header:
+  type: cover
+  image:
+    src: assets/about-header.png
+---
+</code></pre></div></div>
+
+<p>The rest is just <a href="https://www.markdownguide.org/basic-syntax/">markdown formatting</a>.</p>
+
+<h3 id="github-pages">Github Pages</h3>
+
+<p>Github Pages is a free static website hosting service that uses Jekyll, and is where this site is being hosted. Github pages uses Jekyll to host static sites, so you can drag ‘n’ drop your HTML and CSS files straight into a repository called:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[username].github.io
+</code></pre></div></div>
+
+<p>Even using your own domain is free, and of course, the integration with git, which is why Github Pages is so awesome! There are caveats though such as a size limit of 1GB
+and a soft bandwidth limit of 100GB. This site is unlikely to exceed the bandwidth limit, but may exceed the size limit in the far future, which is when I will have to move the website
+over to another host.</p>
+
+<h2 id="the-future-of-this-site">The future of this site</h2>
+
+<p>Primarily, this site will serve as a place with articles about projects I have undertaken with tutorial-like reads wherever possible, so anyone can follow along or even attempt
+the same projects for themselves. Mostly likely this site will contain more niche and specific information rather than broad tutorials or articles such as “the top 10 popular operating systems”, but will still remain interesting nonetheless.</p>
+
+<p>I will post articles and update pages whenever and wherever I can, though this won’t be consistent. I can’t be sure of the hosting situation in the future, but will try to have the best up-time possible.</p>
+
+<p>Thank you for reading my welcome post!</p>]]></content><author><name></name></author><category term="XavierCyber" /><category term="Xavier" /><category term="Jekyll" /><category term="Ruby" /><category term="HTML" /><category term="CSS" /><category term="Github-Pages" /><category term="SSG" /><category term="TeXt" /><summary type="html"><![CDATA[Hi, and welcome to XavierCyber.com. Today we will discuss how this website is put together, what it will be used for, and potential future content.]]></summary></entry></feed>
