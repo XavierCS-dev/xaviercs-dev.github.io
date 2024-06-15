@@ -3,6 +3,8 @@ title: Effect Engine Devlog 1
 layout: post
 categories: effect engine rust wgpu texture array atlas builder
 author: Xavier
+excerpt: "Welcome to the very first devlog of Effect Engine! Being the first devlog, this one will be a bit unusual. It will roughly cover how the game engine currently works as well as what I am currently working on. There won't be many demos at the moment or the forseeable future, as the game engine is still in a state where it cannot make a fully functional game. However, I hope to change that slightly later on with the introduction of working text and menus."
+
 ---
 
 ![image](https://www.dropbox.com/scl/fi/lor1e0i8tw7do1t7g2lgo/title.jpg?rlkey=84bf0g0vs23ylr6ekof7l92pz&st=foa4dwtm&raw=1)
