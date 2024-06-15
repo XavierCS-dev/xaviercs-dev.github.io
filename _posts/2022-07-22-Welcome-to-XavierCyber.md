@@ -1,11 +1,11 @@
 ---
-title: Welcome to XavierCyber!
+title: Welcome to XavierCS!
 layout: post
-categories: XavierCyber Xavier Jekyll Ruby HTML CSS Github-Pages SSG TeXt
 author: Xavier
+tags: XavierCS Xavier Jekyll Ruby HTML CSS Github-Pages SSG TeXt
 ---
 
-Hi, and welcome to XavierCyber.com. Today we will discuss how this website is put together,
+Hi, and welcome to xaviercs.com. Today we will discuss how this website is put together,
 what it will be used for, and potential future content.
 
 ## How this website is constructed
@@ -50,11 +50,11 @@ the variables look something like this:
 
 ```
 ---
-title: Welcome to XavierCyber!
+title: Welcome to XavierCS!
 type: article
 aside:
     toc: false
-tags: XavierCyber Xavier Jekyll Ruby HTML CSS Github-Pages SSG TeXt
+tags: XavierCS Xavier Jekyll Ruby HTML CSS Github-Pages SSG TeXt
 article_header:
   type: cover
   image:

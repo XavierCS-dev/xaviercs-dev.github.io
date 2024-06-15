@@ -1,7 +1,7 @@
 ---
 title: Running Rust on a PicoW
 layout: post
-categories: pico-w raspberry-pi rust embedded
+tags: pico-w raspberry-pi rust embedded
 author: Xavier
 ---
 
