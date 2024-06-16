@@ -30,13 +30,13 @@ render_pass.set_bind_group(1, self.camera.bind_group(), &[]);
     Ok(())
 {% endhighlight %}
 
-Each layer stores its related entity data in buffer, along with a Texture Atlas. The entity data just includes basic position and transformation data as well as its current layer, and how to extract its required texture from the texture atlas. What this means is, each texture is only stored once per layer, reducing duplication of the data. The benefit of the texture atlas and associated layer in this case is that all entities of a particular layer can be drawn in a single draw call, reducing CPU overhead.
+Each layer stores its related entity data in buffer, along with a texture atlas. The entity data just includes basic position and transformation data as well as its current layer, and how to extract its required texture from the texture atlas. What this means is, each texture is only stored once per layer, reducing duplication of the data. The benefit of the texture atlas and associated layer in this case is that all entities of a particular layer can be drawn in a single draw call, reducing CPU overhead.
 
-In order to update each entity, each layer has to be updated individually by calling a function in Layer2DSystem, which takes the entities then updates the buffers in the layer based on the entity data. In the future, I plan design this so each layer can be updated in parallel.
+In order to update each entity, each layer has to be updated individually by calling a function in Layer2DSystem, which takes the entities then updates the buffers in the layer based on the entity data. In the future, I plan to design this such that each layer can be updated in parallel.
 
 Speaking of which, the current architectural goal, in terms of thread model, is to have a singular main thread, which uses thread pools to delegate work which can be done in parallel, as well as having any engine functionality that can be done in parallel, do so. This should make the problem of utilising the full CPU as well as synchronisation a lot easier. I still have a lot to learn on this topic, so this will likely change as my understanding of modern game engine architecture improves.
 
-## So...what am I doing currently?
+## So... what am I doing currently?
 
 I noticed a few issues with the engine as it stands..namely, there is a lot of repetition and initialising various structures is very verbose.
 
@@ -80,7 +80,7 @@ pub async fn new(window: winit::window::Window, v_sync: bool) -> Self {
 
 There are quite a number of steps here, and a lot of what is done here is repeated later on. Not to mention the user has very little control of these options, unless I create a huge list of parameters to pass. There is a solution for this, the builder pattern.
 
-The builder pattern allows you to easily create any structure, using as minimal options as possible if you want, but also granting the ability to use more advanced features if you wish. Not only that, it is very easy to extend with new options and features without breaking existing code. It is essentially a cleaner version of [function overloading]{https://en.wikipedia.org/wiki/Function_overloading}. The builder pattern does add some verbosity for the structure it is "building", but in my opinion the trade off is worth it, as it makes future usability and maintainability much simpler.
+The builder pattern allows you to easily create any structure, using as minimal options as possible if you want, but also granting the ability to use more advanced features if you wish. Not only that, it is very easy to extend with new options and features without breaking existing code. It is essentially a cleaner version of [function overloading](https://en.wikipedia.org/wiki/Function_overloading). The builder pattern does add some verbosity for the structure it is "building", but in my opinion the trade off is worth it, as it makes future usability and maintainability much simpler.
 
 For example, take this new `BufferAllocator` structure, which builds a `Buffer` structure:
 
@@ -354,7 +354,7 @@ impl Buffer {
 }
 {% endhighlight %}
 
-The usage is stored within the buffer, so a flag no longer needs to be passed around. The allocation and writing itself is then fully managed within one function. So if the amount of data passed exceeds the buffer size, this will be cause by the write function. Now the Layer structure no longer has to store the capacity itself or manage any of these details. This functionality can now also be easily reused for anything else that may need a buffer. Remember, the buffer is created using the `BufferAllocator` builder, and calling the `allocate()` function.
+The usage is stored within the buffer, so a flag no longer needs to be passed around. The allocation and writing itself is then fully managed within one function. So if the amount of data passed exceeds the buffer size, this will be handled by the write function. Now the Layer structure no longer has to store the capacity itself or manage any of these details. This functionality can now also be easily reused for anything else that may need a buffer. Remember, the buffer is created using the `BufferAllocator` builder, and calling the `allocate()` function.
 
 The managing of buffers related to the entities is now much simpler for `Layer2DSystem`!:
 
