@@ -80,6 +80,6 @@ I eventually plan to open source the engine completely once it has more features
 
 I have already discussed my plans to improve instance management, adding an ECS, adding hot reloading and using GPU driven rendering. I plan to make a simple [voxel](https://voxel.wiki/wiki/introduction/){:target="_blank"} sandbox with my engine, but this requires voxel-specific rendering techniques for reasonable performance. Then overtime will come basic graphical features, such as a sky box, ambient occlusion, lighting and so on. I am aim to implement [Physically Based Rendering (PBR)](https://en.wikipedia.org/wiki/Physically_based_rendering){:target="_blank"} in later stages of development.
 
-My plans are loose with a general idea of what I want to, progress will likely be slow for a long while, as I can only work on this project in my spare time after work. If I make any significant progress, you can be sure to find it on this site!
+My plans are loose with a general idea of what I want to. Progress will likely be slow for a long while, as I can only work on this project in my spare time after work. Perhaps when the ECS is implemented, it could make a good article!
 
 For now, I think I will get on with improving instance management.
