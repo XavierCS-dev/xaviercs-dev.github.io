@@ -84,4 +84,4 @@ My plans are loose with a general idea of what I want to. Progress will likely b
 
 For now, I think I will get on with improving instance management.
 
-If you discover any problems with this article, please raise an issue [here](https://github.com/XavierCS-dev/xaviercs-dev.github.io/issues).
+If you discover any problems with this article, please raise an issue [here](https://github.com/XavierCS-dev/xaviercs-dev.github.io/issues){:target="_blank"}.
