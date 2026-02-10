@@ -83,3 +83,5 @@ I have already discussed my plans to improve instance management, adding an ECS,
 My plans are loose with a general idea of what I want to. Progress will likely be slow for a long while, as I can only work on this project in my spare time after work. Perhaps when the ECS is implemented, it could make a good article!
 
 For now, I think I will get on with improving instance management.
+
+If you discover any problems with this article, please raise an issue [here](https://github.com/XavierCS-dev/xaviercs-dev.github.io/issues).
