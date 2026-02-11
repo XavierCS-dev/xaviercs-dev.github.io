@@ -26,7 +26,7 @@ At some point, I will be using `DrawIndexedIndirect` to issue draws specified by
 
 Having one giant buffer sounds fine, until you start thinking about the case where you need to manage it for longer lived data. Over time when data is added and removed,  you end up with lots of "holes" in the buffer, with no way to remove them, i.e. fragmentation. You can copy the data over to a new buffer, then find and update every single index into that buffer, but performing this operation may lead to spikes in frame time, depending on how much data you have, as you must stall the GPU to ensure the buffer is not being used.
 
-The solution for me was to create a buffer allocator which attempts to fit new data into free memory ranges of an allocation, reducing the need for more thorough defragmentation operations. It is actually quite easy to produced a poor allocator. For example, if you don't merge adjacent free memory ranges, you can end up with many small free ranges that the majority of allocations can't fit into. It is also very easy to create complicated allocate and free functions with hidden bugs, for example my free function was initially faulty in that it didn't properly detect double frees of partially overlapping ranges.
+The solution for me was to create a buffer allocator which attempts to fit new data into free memory ranges of an allocation, reducing the need for more thorough defragmentation operations. It is actually quite easy to produce a poor allocator. For example, if you don't merge adjacent free memory ranges, you can end up with many small free ranges that the majority of allocations can't fit into. It is also very easy to create complicated allocate and free functions with hidden bugs, for example my free function was initially faulty in that it didn't properly detect double frees of partially overlapping ranges.
 
 Per frame data can get away with a much simpler "bump allocator", where the current offset to write data is increased by the data size, as the whole buffer will be reset the next time the frame data is accessed by setting the offset to 0.
 #### Transfer Queue
@@ -78,9 +78,9 @@ The ECS comes in because it makes it very easy for the engine to own all of the 
 ## Plans for the future
 I eventually plan to open source the engine completely once it has more features and I am happy with the current state of the code. I still have much to learn and therefore many improvements to make.
 
-I have already discussed my plans to improve instance management, adding an ECS, adding hot reloading and using GPU driven rendering. I plan to make a simple [voxel](https://voxel.wiki/wiki/introduction/){:target="_blank"} sandbox with my engine, but this requires voxel-specific rendering techniques for reasonable performance. Then overtime will come basic graphical features, such as a sky box, ambient occlusion, lighting and so on. I am aim to implement [Physically Based Rendering (PBR)](https://en.wikipedia.org/wiki/Physically_based_rendering){:target="_blank"} in later stages of development.
+I have already discussed my plans to improve instance management, adding an ECS, adding hot reloading and using GPU driven rendering. I plan to make a simple [voxel](https://voxel.wiki/wiki/introduction/){:target="_blank"} sandbox with my engine, but this requires voxel-specific rendering techniques for reasonable performance. Then overtime will come basic graphical features, such as a sky box, ambient occlusion, lighting and so on. I am to implement [Physically Based Rendering (PBR)](https://en.wikipedia.org/wiki/Physically_based_rendering){:target="_blank"} in later stages of development.
 
-My plans are loose with a general idea of what I want to. Progress will likely be slow for a long while, as I can only work on this project in my spare time after work. Perhaps when the ECS is implemented, it could make a good article!
+Progress will likely be slow for a long while, as I can only work on this project in my spare time after work. Perhaps when the ECS is implemented, it could make a good article!
 
 For now, I think I will get on with improving instance management.
 
