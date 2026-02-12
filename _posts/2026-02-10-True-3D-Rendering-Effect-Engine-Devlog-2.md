@@ -56,7 +56,7 @@ A major problem with the current architecture is that the CPU instance data does
 
 I am not sure which heading to put this under, and it is too short to qualify for its own section, so I will leave it here. Currently I have two draw passes, one clears an image, then draws the cubes and debug interface to it. The second pass reads the image as an input attachment and copies it into the Swapchain. This second pass will be used to apply post-processing effects later down the line.
 ### Dynamic Libraries
-In the future, I plan to add hot reload for any game created with this engine. I don't plan to have an editor, so having hot reload at the minimum will help maintain development speed. There are several ways to go about hot reloading, but I have chosen to do it with [dynamic libraries](https://en.wikipedia.org/wiki/Dynamic_library){:target="_blank"} and an [Entity Component System (ECS)](https://en.wikipedia.org/wiki/Entity_component_system){:target="_blank"}.
+In the future, I plan to add hot reload for any game created with this engine. I don't plan to have an editor, so having hot reload at the minimum will help maintain development speed. There are several ways to go about hot reloading, but I have chosen to do it with [dynamic libraries](https://en.wikipedia.org/wiki/Dynamic_library){:target="_blank"} and an [Entity Component System (ECS)](https://github.com/SanderMertens/ecs-faq){:target="_blank"}.
 
 I currently have neither an ECS or hot reloading working, but Effect Engine can run code from dynamic libraries! For example I have the following start up code written in Zig which is compiled into a dynamic library loaded by the game engine:
 ```zig
