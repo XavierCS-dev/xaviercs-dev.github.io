@@ -23,7 +23,7 @@ typedef struct Entity {
 } Entity;
 ```
 
-You could potentially fix that by storing all of the similar structs together. Of course since we aren't using OOP that can't be done via polymorphism, and manually maintaining arrays of every type of struct is going to be a large maintenance burden. Instead these structs will be stored together based on what they are composed of. The way this is done is by storing a vector of arrays of components with an unordered map with their component ID as a key and corresponding vector index within an `std::unordered_map`. These sets of components... archetypes, if you will, can be given an ID to distinguish them from other combinations. 
+You could potentially fix that by storing all of the similar structs together. Of course since we aren't using OOP that can't be done via polymorphism, and manually maintaining arrays of every type of struct is going to be a large maintenance burden. Instead these structs will be stored together based on what they are composed of. The way this is done is by storing arrays of components within a vector, then using an `std::unordered_map` to get the index within the vector for a particular component. These sets of components... archetypes, if you will, can be given an ID to distinguish them from other combinations. 
 
 ```c++
 struct ComponentArray {
