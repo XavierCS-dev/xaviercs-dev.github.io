@@ -17,9 +17,9 @@ How could user written logic interface with with actual entity data? Remember, t
 
 ```c
 typedef struct Entity {
-	void (*update)(void* entity, double delta_time);
-	// Other members below
-	...
+    void (*update)(void* entity, double delta_time);
+    // Other members below
+    ...
 } Entity;
 ```
 
@@ -123,8 +123,8 @@ class ComponentData {
     uint32_t length();
 
   private:
-	...
-	// Corresponding entity index for a component index
+    ...
+    // Corresponding entity index for a component index
     std::vector<EfeEcsCEntID> m_reverse_map{};
     std::unordered_map<EfeEcsEntID, uint32_t> m_entity_index{};
     ...
@@ -135,8 +135,8 @@ class ComponentData {
 ```c
 // game.c
 void bounce_system(EfeEcsWorld* world, EfeEcsQuery* query, EfeEcsRunAPI* api) {
-	// I am currently doing a large rewrite of how user scripts are handled, 
-	// so this code will look somewhat different.
+    // I am currently doing a large rewrite of how user scripts are handled, 
+    // so this code will look somewhat different.
     EfeEcsCompIter iter_pos = api->get_component(query, 2);
     EfeEcsCompIter iter_health = api->get_component(query, 3);
     Position* pos_data = iter_pos.data;
