@@ -95,7 +95,7 @@ struct Archetype {
 };
 ```
 
-"That's weird.", you may ask, "Why don't you store a big array of structures that each have all of the components?".  We will get to that don't worry.
+"That's weird.", you may ask, "Why don't you store a big array of structures that each have all of the components?".  We will get to that, don't worry.
 
 Now we can store the function pointer in one place as it will be the same for all members of an archetype. We do have one issue here though. With OOP you get polymorphism. This means that say for example, you have a move function, any object with the `IMove` interface will work with the function! This is something that we also want. If we want some sort of system that is able to operate on any moveable object, it would be a good idea if we could somehow query all of the archetypes for ones that contain **at least** a `MoveComponent`, allowing us to implement a kind of pseudo polymorphism. Doing this every frame is likely to hurt performance a lot, especially when we have a large number of systems. So instead we can keep a vector of system objects, which contain the C function pointer to the user defined system, as well as a set of all the archetypes it can operate on. 
 
@@ -107,9 +107,9 @@ struct SystemData {
 };
 ```
 
-Now we can discuss the reason we decided to take the unconventional approach of storing separate arrays of components. Since our systems match to archetypes that have *at least* the components it needs, there are likely to be extra bits of data we don't need. If we had arrays of structs containing components, we would be wasting the CPU cache by loading data that is not actually needed! I am yet to actually profile this in practice. Perhaps in the future I will write on article on setting up [tracy](https://github.com/wolfpld/tracy){:target="blank"} in my engine.
+Now we can discuss the reason we decided to take the unconventional approach of storing separate arrays of components. Since our systems match to archetypes that have *at least* the components it needs, there are likely to be extra bits of data we don't need. If we had arrays of structs containing components, we would be wasting the CPU cache by loading data that is not actually needed! I am yet to actually profile this in practice. Perhaps in the future I will write an article on setting up [tracy](https://github.com/wolfpld/tracy){:target="blank"} in my engine.
 
-Now we need some functionality to delete a particular entity. Since the entity ID may be needed in the future, I have chosen add functionality which allows a user to get the entity ID based on the position of the component, then delete the components based on the entity ID. It would be more efficient to directly delete the components on a particular index but this is currently how the ECS works.
+Now we need some functionality to delete a particular entity. Since the entity ID may be needed in the future, I have chosen to add functionality which allows a user to get the entity ID based on the position of the component, then delete the components based on the entity ID. It would be more efficient to directly delete the components on a particular index but this is currently how the ECS works.
 
 ```c++
 class ComponentData {
