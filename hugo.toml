@@ -1,0 +1,23 @@
+baseURL = 'https://xaviercs.com'
+languageCode = 'en-gb'
+title = 'XavierCS'
+theme = 'risotto'
+author = "XavierCS"
+copyright = "© XavierCS"
+
+
+[params.theme]
+palette = "gruvbox-dark"
+
+[menu]
+  [[menu.main]]
+    identifier = "about"
+    name = "About"
+    url = "/about/"
+    weight = 10
+[[menu.main]]
+    identifier = "posts"
+    name = "Posts"
+    url = "/posts/"
+    weight = 10
+

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><title>Welcome to XavierCS! &ndash; XavierCS</title>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8"/>
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.4/css/academicons.min.css" integrity="sha512-IW0nhlW5MgNydsXJO40En2EoCkTTjZhI3yuODrZIc8cQ4h1XcF53PsqDHa09NqnkXuIe0Oiyyj171BqZFwISBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="http://localhost:1313/css/palettes/gruvbox-dark.css">
+<link rel="stylesheet" href="http://localhost:1313/css/risotto.css">
+<link rel="stylesheet" href="http://localhost:1313/css/custom.css">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta property="og:title" content="Welcome to XavierCS! &ndash; XavierCS" />
+<meta property="og:url" content="http://localhost:1313/posts/2022-07-22-welcome-to-xaviercyber/" />
+
+  
+
+<meta property="og:locale" content="en-gb" />
+</head>
+
+    <body>
+        <div class="page">
+
+            <header class="page__header"><nav class="page__nav main-nav">
+    <ul>
+      <li class="nomarker"><h1 class="page__logo"><a href="http://localhost:1313/" class="page__logo-inner">XavierCS</a></h1></li>
+    
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/about/" title="">About</a></li>
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/posts/" title="">Posts</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+            <section class="page__body">
+    <header class="content__header">
+        <h1>Welcome to XavierCS!</h1>
+    </header>
+    <div class="content__body">
+        <p>Hi, and welcome to xaviercs.com. Today we will discuss how this website is put together,
+what it will be used for, and potential future content.</p>
+<h2 id="how-this-website-is-constructed">How this website is constructed</h2>
+<p>At the time of writing, the amount of CSS and HTML written by myself is very minimal, though this will definitely change as I update the site and add necessary functionality.
+The heavy lifting has been done by a combination of the <a href="https://jekyllrb.com/">Jekyll</a> Static Site Generator (SSG) and the beautiful <a href="https://github.com/kitian616/jekyll-TeXt-theme">TeXt Theme</a>.</p>
+<p>Revision 1: Now using <a href="https://github.com/jeffreytse/jekyll-theme-yat">Yat!</a></p>
+<p>Revision 2: Currently using the default <a href="https://github.com/jekyll/minima">minima</a> theme, but I plan to add search functionality.</p>
+<h3 id="static-site-generators-ssgs">Static Site Generators (SSGs)</h3>
+<p>Static Site Generators or SSGs generate full static websites with HTML and CSS using HTML/CSS templates, and content such as images or text. SSGs often form part of <a href="https://www.cloudflare.com/en-gb/learning/performance/what-is-jamstack/">&ldquo;JAMstack&rdquo;</a>.</p>
+<p>Static websites are simple websites that
+are mostly made up of HTML, CSS and Javascript, and always load the same way, as opposed to a dynamic website, which may change due to factors such as time or location.
+This gives static sites an advantage in speed and predictability, for both the user and the host. The lack of a database also significantly increases the security of static sites.</p>
+<p>In fact, static websites are so fast, many services such as Github via <a href="https://pages.github.com/">GitHub Pages</a>, offer free hosting for static sites. Coincidentally (or not) Github Pages runs on Jekyll, and hosts this website!</p>
+<h3 id="jekyll">Jekyll</h3>
+<p>Jekyll is a Static Site Generator written in Ruby with the goal of creating fast and beautiful blog-aware static websites without the need for databases.
+Jekyll is Free and Open Source Software (FOSS) used by companies such as <a href="https://jekyllrb.com/showcase/">Spotify, Mozilla, Twitch and Github</a> for creating functional static sites.</p>
+<p>A huge advantage of Jekyll which made it my first choice for this website is the fact that it is blog-aware. This means that Jekyll makes it easy to utilise custom layouts for pages and articles
+as well as take advantage of permalinks, tags and categories to improve the look of the website and boost SEO. You may have seen on the home page that all the posts are added and come with
+a preview automagically! The way Jekyll does this is by utilising variables to copy and paste content from markdown files.</p>
+<p>For this site, I am using the custom TeXt theme, which comes with its own layouts, categories and conventions, and have most of the CSS and HTML written for me.</p>
+<p>The beauty of this setup is creating articles and site pages is incredibly easy. In order to do so, you must first create a markdown file with the date and name separated by dashes, either
+in the main folder, or the &ldquo;_posts&rdquo; folder. For example:</p>
+<pre tabindex="0"><code>2022-07-22-Welcome-to-XavierCyber.md
+</code></pre><p>Once you have done that, you must then add variables such as the title, category and type to the top of the file, so Jekyll and your layout know how to display the page. In the case of this page,
+the variables look something like this:</p>
+<pre tabindex="0"><code>---
+title: Welcome to XavierCS!
+type: article
+aside:
+    toc: false
+tags: XavierCS Xavier Jekyll Ruby HTML CSS Github-Pages SSG TeXt
+article_header:
+  type: cover
+  image:
+    src: assets/about-header.png
+---
+</code></pre><p>The rest is just <a href="https://www.markdownguide.org/basic-syntax/">markdown formatting</a>.</p>
+<h3 id="github-pages">Github Pages</h3>
+<p>Github Pages is a free static website hosting service that uses Jekyll, and is where this site is being hosted. Github pages uses Jekyll to host static sites, so you can drag &rsquo;n&rsquo; drop your HTML and CSS files straight into a repository called:</p>
+<pre tabindex="0"><code>[username].github.io
+</code></pre><p>Even using your own domain is free, and of course, the integration with git, which is why Github Pages is so awesome! There are caveats though such as a size limit of 1GB
+and a soft bandwidth limit of 100GB. This site is unlikely to exceed the bandwidth limit, but may exceed the size limit in the far future, which is when I will have to move the website
+over to another host.</p>
+<h2 id="the-future-of-this-site">The future of this site</h2>
+<p>Primarily, this site will serve as a place with articles about projects I have undertaken with tutorial-like reads wherever possible, so anyone can follow along or even attempt
+the same projects for themselves. Mostly likely this site will contain more niche and specific information rather than broad tutorials or articles such as &ldquo;the top 10 popular operating systems&rdquo;, but will still remain interesting nonetheless.</p>
+<p>I will post articles and update pages whenever and wherever I can, though this won&rsquo;t be consistent. I can&rsquo;t be sure of the hosting situation in the future, but will try to have the best up-time possible.</p>
+<p>Thank you for reading my welcome post!</p>
+
+    </div>
+    <footer class="content__footer"></footer>
+
+            </section>
+
+            <section class="page__aside">
+                <div class="aside__about">
+
+<ul class="aside__social-links">
+    
+</ul>
+</div>
+                <hr>
+                <div class="aside__content">
+    
+    
+        <p>
+            By Xavier, 
+            2022-07-22
+        </p>
+    
+
+    
+
+                </div>
+            </section>
+
+            <footer class="page__footer"><p>
+    
+    
+    
+    
+    
+    
+      
+    
+      
+    
+    
+    
+      
+      
+          
+            
+            
+                <br/><span class="active">$ echo $LANG<br/><b></b></span><br/>
+
+            
+          
+      
+    
+</p>
+<br /><br />
+<p class="copyright">© XavierCS</p>
+<p class="advertisement">Powered by <a href="https://gohugo.io/">hugo</a> and <a href="https://github.com/joeroe/risotto">risotto</a>.</p>
+</footer>
+
+        </div>
+    </body>
+
+</html>

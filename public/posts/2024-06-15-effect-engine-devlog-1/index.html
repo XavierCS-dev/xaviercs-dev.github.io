@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><title>Effect Engine Devlog #1 &ndash; XavierCS</title>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8"/>
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.4/css/academicons.min.css" integrity="sha512-IW0nhlW5MgNydsXJO40En2EoCkTTjZhI3yuODrZIc8cQ4h1XcF53PsqDHa09NqnkXuIe0Oiyyj171BqZFwISBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="http://localhost:1313/css/palettes/gruvbox-dark.css">
+<link rel="stylesheet" href="http://localhost:1313/css/risotto.css">
+<link rel="stylesheet" href="http://localhost:1313/css/custom.css">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta property="og:title" content="Effect Engine Devlog #1 &ndash; XavierCS" />
+<meta property="og:url" content="http://localhost:1313/posts/2024-06-15-effect-engine-devlog-1/" />
+
+  
+
+<meta property="og:locale" content="en-gb" />
+</head>
+
+    <body>
+        <div class="page">
+
+            <header class="page__header"><nav class="page__nav main-nav">
+    <ul>
+      <li class="nomarker"><h1 class="page__logo"><a href="http://localhost:1313/" class="page__logo-inner">XavierCS</a></h1></li>
+    
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/about/" title="">About</a></li>
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/posts/" title="">Posts</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+            <section class="page__body">
+    <header class="content__header">
+        <h1>Effect Engine Devlog #1</h1>
+    </header>
+    <div class="content__body">
+        <p><img src="https://www.dropbox.com/scl/fi/lor1e0i8tw7do1t7g2lgo/title.jpg?rlkey=84bf0g0vs23ylr6ekof7l92pz&amp;st=foa4dwtm&amp;raw=1" alt="image"></p>
+<p>Welcome to the very first devlog of Effect Engine! Being the first devlog, this one will be a bit unusual. It will roughly cover how the game engine currently works as well as what I am currently working on. There won&rsquo;t be many demos at the moment or the forseeable future, as the game engine is still in a state where it cannot make a fully functional game. However, I hope to change that slightly later on with the introduction of working text and menus.</p>
+<h2 id="the-engine-as-it-stands">The engine as it stands</h2>
+<p>The Effect Engine is currently written in Rust and utilises wgpu. This may change in the future to also utilise Vulkan directly via <a href="https://github.com/ash-rs/ash">Ash</a>. However that is a future problem, as my immediate goals are to clean up the current codebase, then add text and functional menus. In its current state, the game engine is mostly a 2D renderer with some additional features such as audio and a built in camera.</p>
+<p>The renderer currently is only capable of producing 2D graphics, however basic 3D with custom shader support is planned in the future. The architecture is fairly simple. The renderer divides everything up into &ldquo;render layers&rdquo;. These render layers are then drawn in ascending order based on their LayerID.</p>
+<p>{% highlight rust %}
+render_pass.set_bind_group(1, self.camera.bind_group(), &amp;[]);
+for (_, layer) in self.layers.iter() {
+render_pass.set_bind_group(0, layer.bind_group(), &amp;[]);
+render_pass.set_vertex_buffer(0, layer.vertex_buffer());
+render_pass.set_vertex_buffer(1, layer.entity_buffer().unwrap());
+render_pass.draw_indexed(0..6 as u32, 0, 0..layer.entity_count() as u32);
+}
+drop(render_pass);
+self.queue.submit(std::iter::once(command_encoder.finish()));
+surface_texture.present();
+Ok(())
+{% endhighlight %}</p>
+<p>Each layer stores its related entity data in buffer, along with a texture atlas. The entity data just includes basic position and transformation data as well as its current layer, and how to extract its required texture from the texture atlas. What this means is, each texture is only stored once per layer, reducing duplication of the data. The benefit of the texture atlas and associated layer in this case is that all entities of a particular layer can be drawn in a single draw call, reducing CPU overhead.</p>
+<p>In order to update each entity, each layer has to be updated individually by calling a function in Layer2DSystem, which takes the entities then updates the buffers in the layer based on the entity data. In the future, I plan to design this such that each layer can be updated in parallel.</p>
+<p>Speaking of which, the current architectural goal, in terms of thread model, is to have a singular main thread, which uses thread pools to delegate work which can be done in parallel, as well as having any engine functionality that can be done in parallel, do so. This should make the problem of utilising the full CPU as well as synchronisation a lot easier. I still have a lot to learn on this topic, so this will likely change as my understanding of modern game engine architecture improves.</p>
+<h2 id="so-what-am-i-doing-currently">So&hellip; what am I doing currently?</h2>
+<p>I noticed a few issues with the engine as it stands..namely, there is a lot of repetition and initialising various structures is very verbose.</p>
+<p>For example, take this pipeline initialisation:</p>
+<p>{% highlight rust %}
+pub async fn new(window: winit::window::Window, v_sync: bool) -&gt; Self {
+let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+backends: wgpu::Backends::all(),
+..Default::default()
+});
+let window = Arc::new(window);
+let surface = instance.create_surface(window.clone()).unwrap();
+let adapter = instance
+.request_adapter(&amp;wgpu::RequestAdapterOptions {
+power_preference: wgpu::PowerPreference::default(),
+force_fallback_adapter: false,
+compatible_surface: Some(&amp;surface),
+})
+.await
+.unwrap();
+let (device, queue) = adapter
+.request_device(
+&amp;wgpu::DeviceDescriptor {
+label: Some(&ldquo;Adapter&rdquo;),
+required_features: adapter.features(),
+required_limits: wgpu::Limits::default(),
+},
+None,
+)
+.await
+.unwrap();
+let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
+let index_buffer = device.create_buffer_init(&amp;wgpu::util::BufferInitDescriptor {
+label: Some(&ldquo;Index Buffer&rdquo;),
+contents: bytemuck::cast_slice(&amp;indices),
+usage: wgpu::BufferUsages::INDEX,
+});
+..
+{% endhighlight %}</p>
+<p>There are quite a number of steps here, and a lot of what is done here is repeated later on. Not to mention the user has very little control of these options, unless I create a huge list of parameters to pass. There is a solution for this, the builder pattern.</p>
+<p>The builder pattern allows you to easily create any structure, using as minimal options as possible if you want, but also granting the ability to use more advanced features if you wish. Not only that, it is very easy to extend with new options and features without breaking existing code. It is essentially a cleaner version of <a href="https://en.wikipedia.org/wiki/Function_overloading">function overloading</a>. The builder pattern does add some verbosity for the structure it is &ldquo;building&rdquo;, but in my opinion the trade off is worth it, as it makes future usability and maintainability much simpler.</p>
+<p>For example, take this new <code>BufferAllocator</code> structure, which builds a <code>Buffer</code> structure:</p>
+<p>{% highlight rust %}
+pub struct BufferAllocator {
+usage: wgpu::BufferUsages,
+mapped_at_creation: bool,
+size: u64,
+label: Option&lt;&amp;&lsquo;static str&gt;,
+data: Option&lt;Vec<!-- raw HTML omitted -->&gt;,
+}</p>
+<p>impl Default for BufferAllocator {
+/// Default usage: Vertex stage visibility and COPY_DST.
+/// Not mapped at creation
+/// Size of 5096 bytes
+/// No label
+fn default() -&gt; Self {
+let usage = wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST;
+let mapped_at_creation = false;
+let size = 5096;
+let label = None;
+let data = None;
+Self {
+usage,
+mapped_at_creation,
+size,
+label,
+data,
+}
+}
+}</p>
+<p>impl BufferAllocator {
+pub fn usage(mut self, usage: wgpu::BufferUsages) -&gt; Self {
+self.usage = usage;
+self
+}</p>
+<pre><code>pub fn mapped_at_creation(mut self, mapped_at_creation: bool) -&gt; Self {
+    self.mapped_at_creation = mapped_at_creation;
+    self
+}
+
+/// Set the size of the buffer in bytes
+pub fn size(mut self, size: u64) -&gt; Self {
+    self.size = size;
+    self
+}
+
+pub fn label(mut self, label: &amp;'static str) -&gt; Self {
+    self.label = Some(label);
+    self
+}
+
+pub fn data(mut self, data: Vec&lt;u8&gt;) -&gt; Self {
+    self.data = Some(data);
+    self
+}
+
+/// Create the buffer
+fn allocate_buffer(&amp;self, device: &amp;wgpu::Device) -&gt; wgpu::Buffer {
+    match self.data.as_ref() {
+        Some(data) =&gt; device.create_buffer_init(&amp;wgpu::util::BufferInitDescriptor {
+            label: self.label,
+            contents: data,
+            usage: self.usage,
+        }),
+        None =&gt; device.create_buffer(&amp;wgpu::BufferDescriptor {
+            label: self.label,
+            size: self.size,
+            usage: self.usage,
+            mapped_at_creation: self.mapped_at_creation,
+        }),
+    }
+}
+
+pub fn allocate(self, device: &amp;wgpu::Device) -&gt; Buffer {
+    let buffer = self.allocate_buffer(device);
+    let size = match self.data {
+        Some(data) =&gt; data.len(),
+        None =&gt; 0,
+    };
+    let capacity = self.size as usize;
+    let usage = self.usage;
+    Buffer::new(buffer, size, capacity, usage)
+}
+</code></pre>
+<p>}
+{% endhighlight %}</p>
+<p>As you can see, some good defaults are provided, while also allowing some choices to be optional, simplifying intialisation of the Buffer structure. You may notice that the member functions don&rsquo;t take a reference, but instead actually <code>move</code> the data of self. Then it returns itself. This allows one to continuously call member functions in a chain. An example of its usage is as follows:</p>
+<p>{%highlight rust %}
+pub fn write(&amp;mut self, data: &amp;[u8], device: &amp;wgpu::Device, queue: &amp;wgpu::Queue) {
+let size = std::mem::size_of_val(data);
+if size &gt; self.capacity {
+let capacity = size * 2;
+let buffer = BufferAllocator::default()
+.size(capacity as u64)
+.usage(self.usage)
+.allocate_buffer(device);
+queue.write_buffer(&amp;buffer, 0, data);
+self.capacity = capacity;
+self.size = size;
+} else {
+queue.write_buffer(&amp;self.buffer, 0, data);
+self.size = size;
+}
+}
+{% endhighlight %}</p>
+<p>There are of course two different allocate functions. The one used here actually returns a <code>wgpu::Buffer</code> because this is an internal write function of my own Buffer structure, but as you can see, it makes things simpler than manually building a structure or passing a huge amount of arguments. Another example is the actual inialisation of the engine itself,</p>
+<p>{% highlight rust %}
+let (mut app, event_loop) = EffectAppBuilder::default()
+.resizable_window(false)
+.fullscreen_mode(FullScreenMode::WINDOWED)
+.window_dimensions(840, 480)
+.monitor(0)
+.build()
+.get_wgpu_2d();
+{% endhighlight %}</p>
+<p>Most of these arguments are optional, and there will be even more arguments to come. Imagine if they were all function overloads or all had to be manually passed, it would be a nightmare! However with the builder pattern, the initialisation can be even simpler!:</p>
+<p>{% highlight rust %}
+let (mut app, event_loop) = EffectAppBuilder::default()
+.build()
+.get_wgpu_2d();
+{% endhighlight %}</p>
+<p>I think this adequately highlights the strength of this design pattern.</p>
+<p>Another thing I have been working on is simplifying functionality that is often repeated, eg creating and writing to buffers.</p>
+<p>Forgive the long block of code, but it is necessary to highlight how verbose it is:</p>
+<p>{% highlight rust %}
+impl WebLayer2DSystem {
+fn alloc_buffer(
+data: &amp;[u8],
+size: u64,
+device: &amp;wgpu::Device,
+queue: &amp;wgpu::Queue,
+label: &amp;str,
+index: bool,
+) -&gt; wgpu::Buffer {
+let usage;
+if index {
+usage = wgpu::BufferUsages::INDEX;
+} else {
+usage = wgpu::BufferUsages::VERTEX;
+}
+let buffer = device.create_buffer(&amp;wgpu::BufferDescriptor {
+label: Some(label),
+size,
+usage: usage | wgpu::BufferUsages::COPY_DST,
+mapped_at_creation: false,
+});
+queue.write_buffer(&amp;buffer, 0, data);
+buffer
+}</p>
+<pre><code>// alloc buffer to 2x the size and set new max entity count
+fn create_entity_buffer(
+    entities: &amp;[&amp;WebEntity2D],
+    device: &amp;wgpu::Device,
+    queue: &amp;wgpu::Queue,
+) -&gt; wgpu::Buffer {
+    let ents = entities.iter().map(|e| e.to_raw()).collect::&lt;Vec&lt;_&gt;&gt;();
+    let data: &amp;[u8] = bytemuck::cast_slice(ents.as_slice());
+    let size = std::mem::size_of_val(data) as u64;
+    WebLayer2DSystem::alloc_buffer(data, size * 2, device, queue, &quot;Entity Buffer&quot;, false)
+}
+
+fn _create_index_buffer(device: &amp;wgpu::Device, queue: &amp;wgpu::Queue) -&gt; wgpu::Buffer {
+    let mut indices: Vec&lt;u16&gt; = Vec::new();
+    indices.extend_from_slice(&amp;[0, 1, 2, 0, 2, 3]);
+    let data: &amp;[u8] = bytemuck::cast_slice(&amp;indices);
+    let size = (std::mem::size_of::&lt;u16&gt;() * 6) as u64;
+    WebLayer2DSystem::alloc_buffer(data, size, device, queue, &quot;Index Buffer&quot;, true)
+}
+
+fn create_vertex_buffer(
+    _texture_size: PhysicalSize&lt;u32&gt;,
+    tex_coord_size: PhysicalSize&lt;f32&gt;,
+    device: &amp;wgpu::Device,
+    queue: &amp;wgpu::Queue,
+) -&gt; wgpu::Buffer {
+    let width = 0.5;
+    let height = 0.5;
+    let verts = vec![
+        Vertex {
+            position: [width, height, 0.0],
+            tex_coords: [tex_coord_size.width, 0.0],
+        },
+        Vertex {
+            position: [-width, height, 0.0],
+            tex_coords: [0.0, 0.0],
+        },
+        Vertex {
+            position: [-width, -height, 0.0],
+            tex_coords: [0.0, tex_coord_size.height],
+        },
+        Vertex {
+            position: [width, -height, 0.0],
+            tex_coords: [tex_coord_size.width, tex_coord_size.height],
+        },
+    ];
+    let data: &amp;[u8] = bytemuck::cast_slice(verts.as_slice());
+    let size = (std::mem::size_of::&lt;Vertex&gt;() * verts.len()) as u64;
+    WebLayer2DSystem::alloc_buffer(data, size, device, queue, &quot;Vertex Buffer&quot;, false)
+}
+
+/// Set the entity data for the particular layer.
+/// Ensure every entity has a texture from the specified layer otherwise you will run into problems.
+pub fn set_entities(
+    layer: &amp;mut WebLayer2D,
+    entities: &amp;[&amp;WebEntity2D],
+    device: &amp;wgpu::Device,
+    queue: &amp;wgpu::Queue,
+) {
+    // allocating exactly amount needed each time may increase the number of allocations needed..
+    // perhaps a strategy of allocatin 2X needed data would be better
+    layer.entity_count = entities.len();
+
+    if layer.entity_count() &gt; layer.entity_maximum() || layer.entity_buffer().is_none() {
+        // Allocate new buffers
+        layer.entity_buffer = Some(WebLayer2DSystem::create_entity_buffer(
+            &amp;entities, device, queue,
+        ));
+        layer.entity_maximum = layer.entity_count * 2;
+    } else {
+        // Reuse buffers
+        let ents = entities.iter().map(|e| e.to_raw()).collect::&lt;Vec&lt;_&gt;&gt;();
+        let entity_data: &amp;[u8] = bytemuck::cast_slice(ents.as_slice());
+        queue.write_buffer(&amp;layer.entity_buffer.as_ref().unwrap(), 0, entity_data);
+    }
+}
+</code></pre>
+<p>}
+{% endhighlight %}</p>
+<p>This is the old code that essentially updated the layer buffers based on new entities passed to it. This is obviously far too complicated, leading to the potential for more mistakes that could lead to memory bugs or performance issues. As you can see there is a lot of repeated code, and extra parameters passed around that only really serve the purpose of a flag. There is a much better way to do this. Here are the relevant parts of the <code>Buffer</code> structure:</p>
+<p>{% highlight rust %}
+pub struct Buffer {
+buffer: wgpu::Buffer,
+size: usize,
+capacity: usize,
+usage: wgpu::BufferUsages,
+}</p>
+<p>impl Buffer {
+/// Overwrite the data in the buffer, data must be a slice of bytes
+pub fn write(&amp;mut self, data: &amp;[u8], device: &amp;wgpu::Device, queue: &amp;wgpu::Queue) {
+let size = std::mem::size_of_val(data);
+if size &gt; self.capacity {
+let capacity = size * 2;
+let buffer = BufferAllocator::default()
+.size(capacity as u64)
+.usage(self.usage)
+.allocate_buffer(device);
+queue.write_buffer(&amp;buffer, 0, data);
+self.capacity = capacity;
+self.size = size;
+} else {
+queue.write_buffer(&amp;self.buffer, 0, data);
+self.size = size;
+}
+}
+}
+{% endhighlight %}</p>
+<p>The usage is stored within the buffer, so a flag no longer needs to be passed around. The allocation and writing itself is then fully managed within one function. So if the amount of data passed exceeds the buffer size, this will be handled by the write function. Now the Layer structure no longer has to store the capacity itself or manage any of these details. This functionality can now also be easily reused for anything else that may need a buffer. Remember, the buffer is created using the <code>BufferAllocator</code> builder, and calling the <code>allocate()</code> function.</p>
+<p>The managing of buffers related to the entities is now much simpler for <code>Layer2DSystem</code>!:</p>
+<p>{% highlight rust %}
+pub struct Layer2DSystem;</p>
+<p>impl Layer2DSystem {
+pub fn set_entities(
+layer: &amp;mut Layer2D,
+entities: &amp;[&amp;Entity2D],
+device: &amp;wgpu::Device,
+queue: &amp;wgpu::Queue,
+) {
+let data: Vec<!-- raw HTML omitted --> = entities.iter().map(|e| e.to_raw()).collect();
+match layer.entity_buffer.as_mut() {
+Some(buf) =&gt; {
+buf.write(bytemuck::cast_slice(&amp;data), device, queue);
+}
+None =&gt; {
+// Not using the data method as it is better for when the entities won&rsquo;t increase,
+// as reallocating a lot when creating new layers / extending the buffer could cause stutters.
+// the *2 means 2 times the needed buffer size will be allocated
+let mut buf = BufferAllocator::default()
+.usage(wgpu::BufferUsages::VERTEX)
+.size((std::mem::size_of::<!-- raw HTML omitted -->() * data.len()) as u64 * 2)
+.allocate(device);
+buf.write(bytemuck::cast_slice(&amp;data), device, queue);
+layer.entity_buffer = Some(buf);
+}
+}
+// Extend indices to match number of entities
+layer.entities = entities.len();
+let mut data = Vec::new();
+for i in 0..entities.len() {
+data.extend_from_slice(&amp;INDICES);
+}
+layer
+.index_buffer
+.write(bytemuck::cast_slice(&amp;data), device, queue);
+}
+}
+{% endhighlight %}</p>
+<p>Yes, this is currently the entire implementation of <code>Layer2DSystem</code>. Much better! Once the buffer is initially created, it is then just a single function call! Okay yes I admit, some of the code such as the vertex calculation was just moved elsewhere, namely to the initialisation of the layer itself, since I will be switching to Texture Arrays over Texture Atlases. Since textures in a texture array must be uniform in this case, all vertex calculation can be done upon initialisation. The reason I chose to require the layers to have all the textures they need upon initialisation is because it was much simpler to code for a texture atlas. However it is not likely a huge deal for a texture array, so this is functionality I can probably provide later on.</p>
+<h2 id="my-plans-for-the-future">My plans for the future</h2>
+<p>A lot of the plans are written down in a README in the <a href="https://github.com/XavierCS-dev/Effect-Engine">repository</a>, but to give you an idea of my immediate goals after the current codebase cleanup..it is to release 0.3.0-alpha once the cleanup is done, then working on the GUI. Most games require some sort of text display and menus, so it is important I get this done as soon as possible, I plan to make a GUI library so common menu design patterns are easy to do, for example, a list of buttons. The main issue will be figuring out mouse and menu collisions, as well as mouse and non-menu collisions for point and click games, this may result in needing to work on the physics system before mouse menu control would be supported.</p>
+<p>Now, talking about this site. I plan to write mostly dev logs for the engine, however I also want to write some articles about news in the tech world that I am interested in, mostly new hardware, technologies, leaks and speculation among other things. In terms of article frequency, there is no guarantee, multiple articles may be written in the same week, or it might be years between articles. Regarding the theme and appearance, I may change it in the future, however it would be a substantial amount of effort, so it would require significant readership to motivate me, something which I believe is unlikely due to the nature of this site.</p>
+<p>I hope you enjoyed this first devlog! I actually plan on making the repository for this site public, so issues can be made to correct any errors. Oh and don&rsquo;t worry, once engine development is further along..there will be more images..and videos, rather than blocks of code.</p>
+
+    </div>
+    <footer class="content__footer"></footer>
+
+            </section>
+
+            <section class="page__aside">
+                <div class="aside__about">
+
+<ul class="aside__social-links">
+    
+</ul>
+</div>
+                <hr>
+                <div class="aside__content">
+    
+    
+        <p>
+            By Xavier, 
+            2024-06-15
+        </p>
+    
+
+    
+
+                </div>
+            </section>
+
+            <footer class="page__footer"><p>
+    
+    
+    
+    
+    
+    
+      
+    
+      
+    
+    
+    
+      
+      
+          
+            
+            
+                <br/><span class="active">$ echo $LANG<br/><b></b></span><br/>
+
+            
+          
+      
+    
+</p>
+<br /><br />
+<p class="copyright">© XavierCS</p>
+<p class="advertisement">Powered by <a href="https://gohugo.io/">hugo</a> and <a href="https://github.com/joeroe/risotto">risotto</a>.</p>
+</footer>
+
+        </div>
+    </body>
+
+</html>

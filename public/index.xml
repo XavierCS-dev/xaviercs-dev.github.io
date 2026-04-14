@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>XavierCS</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on XavierCS</description>
+    <generator>Hugo</generator>
+    <language>en-gb</language>
+    <copyright>© XavierCS</copyright>
+    <lastBuildDate>Mon, 16 Mar 2026 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>A Simple Entity Component System - Effect Engine Devlog #3</title>
+      <link>http://localhost:1313/posts/2026-03-16-a-simple-entity-component-system/</link>
+      <pubDate>Mon, 16 Mar 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2026-03-16-a-simple-entity-component-system/</guid>
+      <description>&lt;p&gt;Being able to render some 3D models to a window is all well and good, but this doesn&amp;rsquo;t constitute a particularly useful game engine. What we need is some way for a developer to move &amp;ldquo;things&amp;rdquo; around within 3D space without having to recompile the game engine.&lt;/p&gt;&#xA;&lt;h2 id=&#34;why-use-ecs&#34;&gt;Why use ECS?&lt;/h2&gt;&#xA;&lt;p&gt;There are many arguments you can find online about why Object Oriented Programming (OOP) is &amp;ldquo;bad&amp;rdquo;. Many of these arguments don&amp;rsquo;t convince me as they consist of arguing against poorly written OOP code that abuses inheritance.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>True 3D Rendering - Effect Engine Devlog #2</title>
+      <link>http://localhost:1313/posts/2026-02-10-true-3d-rendering-effect-engine-devlog-2/</link>
+      <pubDate>Tue, 10 Feb 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2026-02-10-true-3d-rendering-effect-engine-devlog-2/</guid>
+      <description>&lt;p&gt;It has been a while since my last post, and much has changed since then. Firstly, I have ditched Rust and WGPU for C++ and Vulkan. I felt the Rust rendering ecosystem was not developing in the way I liked, and relying on Rust bindings to C/C++ libraries made updating dependencies difficult, hence the switch. Although Rust&amp;rsquo;s memory safety will be sorely missed, development has become much smoother.&lt;/p&gt;&#xA;&lt;h2 id=&#34;what-can-the-engine-do&#34;&gt;What can the engine do?&lt;/h2&gt;&#xA;&lt;p&gt;Not much currently:&#xA;&lt;img src=&#34;https://www.dropbox.com/scl/fi/0k6031h9w9c8oqf7uuj2u/article_img.webp?rlkey=dd5h82cb1xpsunv0lwps2pgi2&amp;amp;st=wzmh2o5x&amp;amp;raw=1&#34; alt=&#34;Plane of grass cubes against a sky-blue background&#34;&gt;&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Effect Engine Devlog #1</title>
+      <link>http://localhost:1313/posts/2024-06-15-effect-engine-devlog-1/</link>
+      <pubDate>Sat, 15 Jun 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-06-15-effect-engine-devlog-1/</guid>
+      <description>&lt;p&gt;&lt;img src=&#34;https://www.dropbox.com/scl/fi/lor1e0i8tw7do1t7g2lgo/title.jpg?rlkey=84bf0g0vs23ylr6ekof7l92pz&amp;amp;st=foa4dwtm&amp;amp;raw=1&#34; alt=&#34;image&#34;&gt;&lt;/p&gt;&#xA;&lt;p&gt;Welcome to the very first devlog of Effect Engine! Being the first devlog, this one will be a bit unusual. It will roughly cover how the game engine currently works as well as what I am currently working on. There won&amp;rsquo;t be many demos at the moment or the forseeable future, as the game engine is still in a state where it cannot make a fully functional game. However, I hope to change that slightly later on with the introduction of working text and menus.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Running Rust on a PicoW</title>
+      <link>http://localhost:1313/posts/2022-10-25-embedded-rust-on-pico-w/</link>
+      <pubDate>Tue, 25 Oct 2022 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2022-10-25-embedded-rust-on-pico-w/</guid>
+      <description>&lt;p&gt;The Raspberry Pi PicoW is a powerful and inexpensive microcontroller with wireless support. However, when trying to run the classic &amp;ldquo;blinky&amp;rdquo; example from &lt;a href=&#34;https://github.com/rp-rs/rp-hal/tree/main/boards/rp-pico&#34;&gt;rp-hal&lt;/a&gt;, you may have discovered that it does not work. This is because the onboard LED (GPIO25) must be accessed through the wireless controller. A port of the driver is being written &lt;a href=&#34;https://github.com/embassy-rs/cyw43&#34;&gt;as we speak&lt;/a&gt;.&lt;/p&gt;&#xA;&lt;p&gt;Fret not however, as it is still possible to access most of the other GPIO with rp-hal. In this article, you will learn how to setup a Rust development environment&#xA;for the Pi Pico/W, and blink 3 LEDs in a controlled pattern. If you are intent on using the wireless chip, you may want to look into &lt;a href=&#34;https://rust-lang.github.io/rust-bindgen/&#34;&gt;creating your own bindings&lt;/a&gt; or using &lt;a href=&#34;https://www.youtube.com/watch?v=zSWkrpu8KBA&#34;&gt;both C and Rust together&lt;/a&gt;.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Welcome to XavierCS!</title>
+      <link>http://localhost:1313/posts/2022-07-22-welcome-to-xaviercyber/</link>
+      <pubDate>Fri, 22 Jul 2022 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2022-07-22-welcome-to-xaviercyber/</guid>
+      <description>&lt;p&gt;Hi, and welcome to xaviercs.com. Today we will discuss how this website is put together,&#xA;what it will be used for, and potential future content.&lt;/p&gt;&#xA;&lt;h2 id=&#34;how-this-website-is-constructed&#34;&gt;How this website is constructed&lt;/h2&gt;&#xA;&lt;p&gt;At the time of writing, the amount of CSS and HTML written by myself is very minimal, though this will definitely change as I update the site and add necessary functionality.&#xA;The heavy lifting has been done by a combination of the &lt;a href=&#34;https://jekyllrb.com/&#34;&gt;Jekyll&lt;/a&gt; Static Site Generator (SSG) and the beautiful &lt;a href=&#34;https://github.com/kitian616/jekyll-TeXt-theme&#34;&gt;TeXt Theme&lt;/a&gt;.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>About</title>
+      <link>http://localhost:1313/about/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/about/</guid>
+      <description>&lt;p&gt;XavierCS is a casual technology journal and devlog started by Xavier, a game engine developer with a Bachelor&amp;rsquo;s in Computer Science. Being casual, it means that articles consist of what the author wants to write about and his opinions without following any strict themes. Detailed benchmarks and hardware testing is not currently in the scope of the journal, however it is something being considered in the distant future.&lt;/p&gt;&#xA;&lt;p&gt;Currently, and likely forever, the only author is Xavier. Currently, there is not any contact information listed here, however the plan is to create some kind of rotating email address that changes in order to combat bots. A contact form would be preferred, however since this site is hosted on GitHub Pages, it is a static site, and so all details of the form including any email addresses, would need to be stored here. This may change in the future if the site is hosted on a VPS.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
