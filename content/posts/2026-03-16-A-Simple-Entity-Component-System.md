@@ -108,7 +108,7 @@ struct SystemData {
 };
 ```
 
-Now we can discuss the reason we decided to take the unconventional approach of storing separate arrays of components. Since our systems match to archetypes that have *at least* the components it needs, there are likely to be extra bits of data we don't need. If we had arrays of structs containing components, we would be wasting the CPU cache by loading data that is not actually needed! I am yet to actually profile this in practice. Perhaps in the future I will write an article on setting up [tracy](https://github.com/wolfpld/tracy){:target="blank"} in my engine.
+Now we can discuss the reason we decided to take the unconventional approach of storing separate arrays of components. Since our systems match to archetypes that have *at least* the components it needs, there are likely to be extra bits of data we don't need. If we had arrays of structs containing components, we would be wasting the CPU cache by loading data that is not actually needed! I am yet to actually profile this in practice. Perhaps in the future I will write an article on setting up [tracy](https://github.com/wolfpld/tracy) in my engine.
 
 Now we need some functionality to delete a particular entity. Since the entity ID may be needed in the future, I have chosen to add functionality which allows a user to get the entity ID based on the position of the component, then delete the components based on the entity ID. It would be more efficient to directly delete the components on a particular index but this is currently how the ECS works.
 
@@ -157,4 +157,4 @@ Finally we now have a user friendly way for the C code to drive logic within a g
 ### Conclusion
 Of course there are going to be other solutions to my original conundrum, but ECS is already a well established design pattern and personally I find it very intuitive for what I am trying to do. At the time of writing, I do have frame time spikes particularly when deleting entities in my ECS, and my ECS also currently lacks the ability for entities to switch their components at run time. Something that is particularly useful as it can act as a kind of built in event system. There is a lot about my implementation that could be improved, but I will get round to it after my hot reload system is in working condition and the big refactor is complete.
 
-If you discover any problems with this article, please raise an issue [here](https://github.com/XavierCS-dev/xaviercs-dev.github.io/issues){:target="blank"}.
+If you discover any problems with this article, please raise an issue [here](https://github.com/XavierCS-dev/xaviercs-dev.github.io/issues).
