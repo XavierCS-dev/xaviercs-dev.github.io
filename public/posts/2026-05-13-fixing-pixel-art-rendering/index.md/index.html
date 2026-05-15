@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><title>Fixing Pixel Art Rendering &ndash; XavierCS</title>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8"/>
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.4/css/academicons.min.css" integrity="sha512-IW0nhlW5MgNydsXJO40En2EoCkTTjZhI3yuODrZIc8cQ4h1XcF53PsqDHa09NqnkXuIe0Oiyyj171BqZFwISBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="http://localhost:1313/css/palettes/gruvbox-dark.css">
+<link rel="stylesheet" href="http://localhost:1313/css/risotto.css">
+<link rel="stylesheet" href="http://localhost:1313/css/custom.css">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta property="og:title" content="Fixing Pixel Art Rendering &ndash; XavierCS" />
+<meta property="og:url" content="http://localhost:1313/posts/2026-05-13-fixing-pixel-art-rendering/index.md/" />
+
+  
+
+<meta property="og:locale" content="en-gb" />
+</head>
+
+    <body>
+        <div class="page">
+
+            <header class="page__header"><nav class="page__nav main-nav">
+    <ul>
+      <li class="nomarker"><h1 class="page__logo"><a href="http://localhost:1313/" class="page__logo-inner">XavierCS</a></h1></li>
+    
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/about/" title="">About</a></li>
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/posts/" title="">Posts</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+            <section class="page__body">
+    <header class="content__header">
+        <h1>Fixing Pixel Art Rendering</h1>
+    </header>
+    <div class="content__body">
+        <p>This article is primarily based on works by <a href="https://www.youtube.com/watch?v=Yu8k7a1hQuU&amp;t=2908s">Casey Muratori</a> and <a href="https://gist.github.com/d7samurai/9f17966ba6130a75d1bfb0f1894ed377">d7samurai</a>. I highly recommend checking out the original sources if you want a more precise understanding of how this technique works.</p>
+<h1 id="why-is-pixel-art-hard-to-render-correctly">Why is Pixel Art hard to render correctly?</h1>
+<p>When loading your sprite into a game engine or framework made by yourself or someone else, by default you will often end up with the following:</p>
+<p><img src="/images/blurry_sprite.webp" alt="Blurry pixel art"></p>
+<p>This is obviously not what you want, the sprite is blurry! The reason this occurs is by default bilinear blending is usually enabled because it is suitable for most textures where you want a bit of interpolation between the pixels due to detail being lost by the limitation of being bound by a certain number of pixels. However with pixel art you already have all of the detail as you placed each pixel by hand, and interpolation is not wanted as it blurs the art and shifts the colours.</p>
+<p>The next action you might take is to use nearest neighbour sampling for filter (<code>vk::Filter::eNearest</code> when using vulkan).</p>
+<p>This presents another issue:</p>
+<p><img src="/images/distorted_sprite.webp" alt="Sprite with uneven texels"></p>
+<p>If you look closely you can see that some parts of the sprite look like they are experiencing some sort of aliasing along straight edges. The reason for this is sub-pixel movement. Essentially the actual coordinates of the the sprite&rsquo;s vertices after their transformation don&rsquo;t actually line up with the pixel grid and land somewhere between those pixels. It might look something like this:</p>
+<p><img src="/images/subpixel_movement.avif" alt="sprite texels unaligned with display pixel"></p>
+<p>Nearest neighbour sampling then takes the nearest texel to the pixel centre and uses that as the sample colour.  However this leads to the sprite being distorted as now the dimensions have been altered beyond what was in the original pixel art. In our case we wanted only part of the pixel to be sampled the colour we wanted, not the whole pixel, but of course, this isn&rsquo;t actually possible. This leads can lead to a shimmer effect when transforming sprites as the pixels swap between being under and oversampled. A good demonstration of this can be found <a href="https://www.shadertoy.com/view/ltBGWc">here</a>.</p>
+<p>Why oversampling / undersampling can happen on same straight line that is parallel to the y axis unfortunately escapes me, the only thing I can think of is there may be subtle differences in the vertex positions and it isn&rsquo;t actually parallel.</p>
+<h1 id="discuss-typical-solutions-to-the-problem-and-why-they-may-not-be-suitable">Discuss typical solutions to the problem and why they may not be suitable</h1>
+<ul>
+<li>Talk about integer sprite scaling and how artifacts can still remain with subpixel motion. Mention snapping vertices to the pixel grid, investigate more about this solution.</li>
+<li>Talk about rendering at a lower resolution then upscale the screen. Mention arbitrary resolutions are no longer possible and the jitter that occurs from the upscaling.</li>
+</ul>
+<p>So what can we do to fix these artifacts? Well most likely when making a game, your pixel art sprite fit within the same sort of dimensions, ie 32x32 and 64x32, essentially keeping the sprites in a similar sort of range in terms of their pixel densities on screen. So what some engines do, is they render the whole screen at a much lower resolution and snap vertices to the pixel grid. Then they upscale the whole scene at once by some integer amount, and add black bars where necessary. With this you get pixel perfect rendering. The only problems being, the presence of black bars, and the fact that the single pixel snapping at the original resolution is now bigger by the upscaled multiplier, meaning that anything that moves freely with smooth motion now snaps to the next multiple of pixels, instead of 1,  creating significant jitter. If you are not interested in smooth motion and this is the behaviour you want.. job done! This <a href="https://youtu.be/QK9wym71F7s?si=oh_fljcqJZjibJ49">video</a> has some good examples of what this will look like, and provides a solution to camera jitter.</p>
+<p>However this isn&rsquo;t the behaviour you would want for something like a Shoot-em-Up (SHMUP), smooth motion of the sprites themselves is needed. There is one solution that could resolve this issue that I will discuss at the end, but I am yet to implement it so cannot comment on its efficacy and it requires a bit more work while having some visual trade offs.</p>
+<p>Lets say we do render the sprite the sprites at their full resolution onto a full resolution image buffer to preserve smooth motion. Is there a way we could keep the pixel as sharp as possible, and then perform some sort of anti aliasing to eliminate any nearest neighbour artifacts? It turns out there is!</p>
+<h1 id="start-discussing-the-actual-solution">Start discussing the actual solution</h1>
+<ul>
+<li>Talk about turning bilinear blending back on.</li>
+<li>Discuss how bilinear blending is what we want but we want to apply it selectively, ie not on pixels that are firmly within a particular texel, and we also want our own blend coefficient.</li>
+<li>start talking about some of the maths on a basic level and what they mean.</li>
+<li>Talk about how sampling the centre of the pixel collapses the blend formula to give us only 1 colour. Also talk about in other cases we calculate our own blend ratio. Perhaps mention why the built in blend ratio is wrong</li>
+<li>Talk about the d7samurai solution, and talk about what the functions used actually do and how they related to how the gpu works. Also talk about premultiplied alpha</li>
+</ul>
+<p>They key is to actually turn bilinear filtering back on.</p>
+<p>Before I continue, I do recommend checking out the link to d7ninja, since they came up with the solution.</p>
+<p>Of course if we just leave it at that, we will be left with blurry pixel art, but there is another way. take a look at this blend equation: TODO: FINISH THIS SECTION TOMORROW</p>
+<p>$$FIGURE\ OUT\ THE\ EQUATION$$
+Given u and v are the input UV coordinates, &hellip;.. they cancel out and we are left with the colour of the texel the pixel actually sits in, and we don&rsquo;t have the blur!</p>
+<p>After all of those changes, we have our final result:
+<img src="images/aa_ship.png" alt="pixel art sprite with no aliasing and minor blur"></p>
+<h1 id="the-unfortunate-reason-for-why-i-wont-be-using-this-solution">The unfortunate reason for why I won&rsquo;t be using this solution</h1>
+<p>Unfortunately there was just one problem for me. The solution provided by d7samurai does not have a license, and I don&rsquo;t posses the mathematical skill required to derive my own performant solution. d7samurai did mention in one of their newer GitHub gists they are fine with people using their solution with accreditation when another GitHub user asked for a license, however this isn&rsquo;t really a strong enough guarantee to go into what will be an open source project licensed under Apache 2.0.</p>
+<p>Instead I plan to take an alternate route with my own pixel art rendering. I will take in a base resolution, and an integer scale factor. The base resolution along with the scale factor dictates how large sprites would look with that resolution. Then I will apply an additional scale factor to bring that base resolution up to the screen resolution. However everything will still be rendered at full resolution, these factors will instead apply to the orthographic projection matrix.</p>
+<p>There are a couple issues with this approach. Firstly, not all base resolutions will scale perfectly into the current screen resolution, so I intend to add the option to choose between black bars and an increased field of view for the resolutions that don&rsquo;t fit perfectly. Personally I would go with the black bars for odd resolutions. The second problem is that there will still be some sprite wobble / shimmer / nearest neighbour artifacts due to sub-pixel motion. I will add an option to snap vertices to the nearest pixel, but for the game I am working on, smooth motion is preferred and I don&rsquo;t think the movement artifacts will be too noticeable due to the fast pace of the game.</p>
+<h1 id="closing-thoughts">Closing thoughts</h1>
+<p>Although I won&rsquo;t be discussing the main solution described in this article, I still think it is incredibly interesting which is why I decided to write an article about it. In any case, I think I am a bit fed up with trying to render pixel art perfectly!</p>
+<p>I forgot to mention previously that my engine is no longer an engine, but is now a framework. The reason for this choice being the greater freedom to make changes on a game by game basis, and the reduction in scope, saving me a lot of time. I won&rsquo;t write another article for a while, as I will put all of my focus into building my framework and first game, see you when it&rsquo;s done!</p>
+
+    </div>
+    <footer class="content__footer"></footer>
+
+            </section>
+
+            <section class="page__aside">
+                <div class="aside__about">
+
+<ul class="aside__social-links">
+    
+</ul>
+</div>
+                <hr>
+                <div class="aside__content">
+    
+    
+        <p>
+            By Xavier, 
+            2026-05-13
+        </p>
+    
+
+    
+
+                </div>
+            </section>
+
+            <footer class="page__footer"><p>
+    
+    
+    
+    
+    
+    
+      
+    
+      
+    
+    
+    
+      
+      
+          
+            
+            
+                <br/><span class="active">$ echo $LANG<br/><b></b></span><br/>
+
+            
+          
+      
+    
+</p>
+<br /><br />
+<p class="copyright">© XavierCS</p>
+<p class="advertisement">Powered by <a href="https://gohugo.io/">hugo</a> and <a href="https://github.com/joeroe/risotto">risotto</a>.</p>
+</footer>
+
+        </div>
+    </body>
+
+</html>

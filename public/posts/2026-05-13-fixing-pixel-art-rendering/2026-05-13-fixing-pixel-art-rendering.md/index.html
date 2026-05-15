@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><title>Fixing Pixel Art Rendering &ndash; XavierCS</title>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8"/>
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.4/css/academicons.min.css" integrity="sha512-IW0nhlW5MgNydsXJO40En2EoCkTTjZhI3yuODrZIc8cQ4h1XcF53PsqDHa09NqnkXuIe0Oiyyj171BqZFwISBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="http://localhost:1313/css/palettes/gruvbox-dark.css">
+<link rel="stylesheet" href="http://localhost:1313/css/risotto.css">
+<link rel="stylesheet" href="http://localhost:1313/css/custom.css">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta property="og:title" content="Fixing Pixel Art Rendering &ndash; XavierCS" />
+<meta property="og:url" content="http://localhost:1313/posts/2026-05-13-fixing-pixel-art-rendering/2026-05-13-fixing-pixel-art-rendering.md/" />
+
+  
+
+<meta property="og:locale" content="en-gb" />
+</head>
+
+    <body>
+        <div class="page">
+
+            <header class="page__header"><nav class="page__nav main-nav">
+    <ul>
+      <li class="nomarker"><h1 class="page__logo"><a href="http://localhost:1313/" class="page__logo-inner">XavierCS</a></h1></li>
+    
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/about/" title="">About</a></li>
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/posts/" title="">Posts</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+            <section class="page__body">
+    <header class="content__header">
+        <h1>Fixing Pixel Art Rendering</h1>
+    </header>
+    <div class="content__body">
+        <p>This article is primarily based on works by <a href="https://www.youtube.com/watch?v=Yu8k7a1hQuU&amp;t=2908s">Casey Muratori</a> and <a href="https://gist.github.com/d7samurai/9f17966ba6130a75d1bfb0f1894ed377">d7samurai</a>. I highly recommend checking out the original sources if you want a more precise understanding of how this technique works.</p>
+<h1 id="explain-what-the-problem-is-and-where-it-comes-from">Explain what the problem is and where it comes from</h1>
+<ul>
+<li>Start with talking about by default using bilinear blending, then switching to nearest to make pixel art sharp.</li>
+<li>Then talk about how nearest produces these small artifacts.</li>
+<li>Talk about how and why these artifacts are produced with nearest neighbour with diagrams.</li>
+</ul>
+<p>When loading your sprite into a game engine or framework made by yourself or someone else, by default you will often end up with the following:</p>
+<p><img src="blurry_sprite.webp" alt="Blurry pixel art"></p>
+<p>This is obviously not what you want, the sprite is blurry! The reason this occurs is by default bilinear blending is usually enabled because it is suitable for most textures where you want a bit of interpolation between the pixels due to detail being lost by the limitation of being bound by a certain number of pixels. However with pixel art you already have all of the detail as you placed each pixel by hand, and interpolation is not wanted as it blurs the art and shifts the colours.</p>
+<h1 id="discuss-typical-solutions-to-the-problem-and-why-they-may-not-be-suitable">Discuss typical solutions to the problem and why they may not be suitable</h1>
+<ul>
+<li>Talk about integer sprite scaling and how artifacts can still remain with subpixel motion. Mention snapping vertices to the pixel grid, investigate more about this solution.</li>
+<li>Talk about rendering at a lower resolution then upscale the screen. Mention arbitrary resolutions are no longer possible and the jitter that occurs from the upscaling.</li>
+</ul>
+<h1 id="start-discussing-the-actual-solution">Start discussing the actual solution</h1>
+<ul>
+<li>Talk about turning bilinear blending back on.</li>
+<li>Discuss how bilinear blending is what we want but we want to apply it selectively, ie not on pixels that are firmly within a particular texel, and we also want our own blend coefficient.</li>
+<li>start talking about some of the maths on a basic level and what they mean.</li>
+<li>Talk about how sampling the centre of the pixel collapses the blend formula to give us only 1 colour. Also talk about in other cases we calculate our own blend ratio. Perhaps mention why the built in blend ratio is wrong</li>
+<li>Talk about the d7samurai solution, and talk about what the functions used actually do and how they related to how the gpu works. Also talk about premultiplied alpha</li>
+</ul>
+<h1 id="discuss-not-using-this-solution">Discuss not using this solution</h1>
+<ul>
+<li>
+<p>Due to not being able to derive my own solution and the d7samurai solution not having a license.</p>
+</li>
+<li>
+<p>Talk about what I plan to do (haven&rsquo;t done it)</p>
+</li>
+<li>
+<p>article finishing thoughts / statements</p>
+</li>
+</ul>
+
+    </div>
+    <footer class="content__footer"></footer>
+
+            </section>
+
+            <section class="page__aside">
+                <div class="aside__about">
+
+<ul class="aside__social-links">
+    
+</ul>
+</div>
+                <hr>
+                <div class="aside__content">
+    
+    
+        <p>
+            By Xavier, 
+            2026-05-13
+        </p>
+    
+
+    
+
+                </div>
+            </section>
+
+            <footer class="page__footer"><p>
+    
+    
+    
+    
+    
+    
+      
+    
+      
+    
+    
+    
+      
+      
+          
+            
+            
+                <br/><span class="active">$ echo $LANG<br/><b></b></span><br/>
+
+            
+          
+      
+    
+</p>
+<br /><br />
+<p class="copyright">© XavierCS</p>
+<p class="advertisement">Powered by <a href="https://gohugo.io/">hugo</a> and <a href="https://github.com/joeroe/risotto">risotto</a>.</p>
+</footer>
+
+        </div>
+    </body>
+
+</html>

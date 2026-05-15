@@ -7,8 +7,15 @@
     <generator>Hugo</generator>
     <language>en-gb</language>
     <copyright>© XavierCS</copyright>
-    <lastBuildDate>Mon, 16 Mar 2026 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 13 May 2026 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Fixing Pixel Art Rendering</title>
+      <link>http://localhost:1313/posts/2026-05-13-fixing-pixel-art-rendering/</link>
+      <pubDate>Wed, 13 May 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2026-05-13-fixing-pixel-art-rendering/</guid>
+      <description>&lt;p&gt;This article is primarily based on works by &lt;a href=&#34;https://www.youtube.com/watch?v=Yu8k7a1hQuU&amp;amp;t=2908s&#34;&gt;Casey Muratori&lt;/a&gt; and &lt;a href=&#34;https://gist.github.com/d7samurai/9f17966ba6130a75d1bfb0f1894ed377&#34;&gt;d7samurai&lt;/a&gt;. I highly recommend checking out the original sources if you want a more precise understanding of how this technique works.&lt;/p&gt;&#xA;&lt;h1 id=&#34;why-is-pixel-art-hard-to-render-correctly&#34;&gt;Why is Pixel Art hard to render correctly?&lt;/h1&gt;&#xA;&lt;p&gt;When loading your sprite into a game engine or framework made by yourself or someone else, by default you will often end up with the following:&lt;/p&gt;&#xA;&lt;p&gt;&lt;img src=&#34;images/blurry_sprite.webp&#34; alt=&#34;Blurry pixel art&#34;&gt;&lt;/p&gt;&#xA;&lt;p&gt;This is obviously not what you want, the sprite is blurry! The reason this occurs is by default bilinear blending is usually enabled because it is suitable for most textures where you want a bit of interpolation between the pixels due to detail being lost by the limitation of being bound by a certain number of pixels. However with pixel art you already have all of the detail as you placed each pixel by hand, and interpolation is not wanted as it blurs the art and shifts the colours.&lt;/p&gt;</description>
+    </item>
     <item>
       <title>A Simple Entity Component System - Effect Engine Devlog #3</title>
       <link>http://localhost:1313/posts/2026-03-16-a-simple-entity-component-system/</link>

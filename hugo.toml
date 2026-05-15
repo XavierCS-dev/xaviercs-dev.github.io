@@ -6,8 +6,8 @@ author = "XavierCS"
 copyright = "© XavierCS"
 
 
-[params.theme]
-palette = "gruvbox-dark"
+# [params.theme]
+# palette = "gruvbox-dark"
 
 [menu]
   [[menu.main]]
