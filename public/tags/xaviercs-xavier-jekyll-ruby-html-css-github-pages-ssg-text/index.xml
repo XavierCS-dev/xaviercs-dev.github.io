@@ -7,11 +7,12 @@
     <generator>Hugo</generator>
     <language>en-gb</language>
     <copyright>© XavierCS</copyright>
+    <lastBuildDate>Fri, 22 Jul 2022 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/xaviercs-xavier-jekyll-ruby-html-css-github-pages-ssg-text/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Welcome to XavierCS!</title>
       <link>http://localhost:1313/posts/2022-07-22-welcome-to-xaviercyber/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <pubDate>Fri, 22 Jul 2022 00:00:00 +0000</pubDate>
       <guid>http://localhost:1313/posts/2022-07-22-welcome-to-xaviercyber/</guid>
       <description>&lt;p&gt;Hi, and welcome to xaviercs.com. Today we will discuss how this website is put together,&#xA;what it will be used for, and potential future content.&lt;/p&gt;&#xA;&lt;h2 id=&#34;how-this-website-is-constructed&#34;&gt;How this website is constructed&lt;/h2&gt;&#xA;&lt;p&gt;At the time of writing, the amount of CSS and HTML written by myself is very minimal, though this will definitely change as I update the site and add necessary functionality.&#xA;The heavy lifting has been done by a combination of the &lt;a href=&#34;https://jekyllrb.com/&#34;&gt;Jekyll&lt;/a&gt; Static Site Generator (SSG) and the beautiful &lt;a href=&#34;https://github.com/kitian616/jekyll-TeXt-theme&#34;&gt;TeXt Theme&lt;/a&gt;.&lt;/p&gt;</description>
     </item>

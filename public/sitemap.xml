@@ -2,28 +2,41 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>http://localhost:1313/</loc>
+    <lastmod>2026-05-13T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/2026-05-13-fixing-pixel-art-rendering/</loc>
+    <lastmod>2026-05-13T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/</loc>
+    <lastmod>2026-05-13T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>http://localhost:1313/posts/2026-03-16-a-simple-entity-component-system/</loc>
+    <lastmod>2026-03-16T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/2026-02-10-true-3d-rendering-effect-engine-devlog-2/</loc>
+    <lastmod>2026-02-10T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/2024-06-15-effect-engine-devlog-1/</loc>
+    <lastmod>2024-06-15T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/pico-w-raspberry-pi-rust-embedded/</loc>
+    <lastmod>2022-10-25T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/2022-10-25-embedded-rust-on-pico-w/</loc>
+    <lastmod>2022-10-25T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/</loc>
+    <lastmod>2022-10-25T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/2022-07-22-welcome-to-xaviercyber/</loc>
+    <lastmod>2022-07-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/xaviercs-xavier-jekyll-ruby-html-css-github-pages-ssg-text/</loc>
+    <lastmod>2022-07-22T00:00:00+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/about/</loc>
   </url><url>
     <loc>http://localhost:1313/categories/</loc>
-  </url><url>
-    <loc>http://localhost:1313/posts/2024-06-15-effect-engine-devlog-1/</loc>
-  </url><url>
-    <loc>http://localhost:1313/tags/pico-w-raspberry-pi-rust-embedded/</loc>
-  </url><url>
-    <loc>http://localhost:1313/posts/</loc>
-  </url><url>
-    <loc>http://localhost:1313/posts/2022-10-25-embedded-rust-on-pico-w/</loc>
-  </url><url>
-    <loc>http://localhost:1313/tags/</loc>
-  </url><url>
-    <loc>http://localhost:1313/posts/2026-02-10-true-3d-rendering-effect-engine-devlog-2/</loc>
-  </url><url>
-    <loc>http://localhost:1313/posts/2022-07-22-welcome-to-xaviercyber/</loc>
-  </url><url>
-    <loc>http://localhost:1313/</loc>
-  </url><url>
-    <loc>http://localhost:1313/tags/xaviercs-xavier-jekyll-ruby-html-css-github-pages-ssg-text/</loc>
   </url>
 </urlset>

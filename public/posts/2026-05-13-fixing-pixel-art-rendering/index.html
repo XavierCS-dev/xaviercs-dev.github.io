@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><title>Fixing Pixel Art Rendering &ndash; XavierCS</title>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8"/>
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.4/css/academicons.min.css" integrity="sha512-IW0nhlW5MgNydsXJO40En2EoCkTTjZhI3yuODrZIc8cQ4h1XcF53PsqDHa09NqnkXuIe0Oiyyj171BqZFwISBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<link rel="stylesheet" href="http://localhost:1313/css/palettes/base16-dark.css">
+<link rel="stylesheet" href="http://localhost:1313/css/risotto.css">
+<link rel="stylesheet" href="http://localhost:1313/css/custom.css">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta property="og:title" content="Fixing Pixel Art Rendering &ndash; XavierCS" />
+<meta property="og:url" content="http://localhost:1313/posts/2026-05-13-fixing-pixel-art-rendering/" />
+
+  
+
+<meta property="og:locale" content="en-gb" />
+</head>
+
+    <body>
+        <div class="page">
+
+            <header class="page__header"><nav class="page__nav main-nav">
+    <ul>
+      <li class="nomarker"><h1 class="page__logo"><a href="http://localhost:1313/" class="page__logo-inner">XavierCS</a></h1></li>
+    
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/about/" title="">About</a></li>
+    
+    <li class="main-nav__item"><a class="nav-main-item" href="http://localhost:1313/posts/" title="">Posts</a></li>
+    
+    </ul>
+</nav>
+
+</header>
+
+            <section class="page__body">
+    <header class="content__header">
+        <h1>Fixing Pixel Art Rendering</h1>
+    </header>
+    <div class="content__body">
+        <p>This article is primarily based on works by <a href="https://www.youtube.com/watch?v=Yu8k7a1hQuU&amp;t=2908s">Casey Muratori</a> and <a href="https://gist.github.com/d7samurai/9f17966ba6130a75d1bfb0f1894ed377">d7samurai</a>. I highly recommend checking out the original sources if you want a more precise understanding of how this technique works.</p>
+<p>It is important to note the following definitions before reading the article: A pixel is a small unit of colour information that is a part of your display. A texel is a small unit of colour information that is a part of a texture or image. A texel can be made from multiple pixels and vice versa. We will be talking about the case where texels are bigger than pixels, magnification. The opposite case is known as minification.</p>
+<h1 id="why-is-pixel-art-hard-to-render-correctly">Why is Pixel Art hard to render correctly?</h1>
+<p>When loading your sprite into a game engine or framework made by yourself or someone else, by default you will often end up with the following:</p>
+<p><img src="images/blurry_sprite.webp" alt="Blurry pixel art"></p>
+<p>This is obviously not what you want, the sprite is blurry! The reason this occurs is by default, bilinear filtering is usually enabled because it is suitable for most textures where you want a bit of interpolation between the texels to hide the limited resolution of the texture. However with pixel art you want it to appear pixelated and low resolution, so interpolation is not wanted as it blurs the art and shifts the colours.</p>
+<p>The next action you might take is to use nearest neighbour sampling for your filter (<code>vk::Filter::eNearest</code> when using vulkan).</p>
+<p>This presents another issue:</p>
+<p><img src="images/distorted_sprite.webp" alt="Sprite with uneven texels"></p>
+<p>If you look closely you can see that some parts of the sprite look like they are experiencing some sort of aliasing along straight edges. The reason for this is sub-pixel movement. Essentially the actual coordinates of the the sprite&rsquo;s vertices after their transformation don&rsquo;t actually line up with the pixel grid and land somewhere between those pixels. It might look something like this:</p>
+<p><img src="images/subpixel_movement.avif" alt="sprite texels unaligned with display pixel"></p>
+<p>Nearest neighbour sampling then takes the nearest texel to the pixel centre and uses that as the sample colour.  However this leads to the sprite being distorted as now the dimensions have been altered beyond what was in the original pixel art. In our case we wanted only part of the pixel to be set to the colour we wanted, not the whole pixel, but of course, this isn&rsquo;t actually possible. This can lead to a shimmer effect when transforming sprites as the pixels swap between being under and oversampled. A good demonstration of this can be found <a href="https://www.shadertoy.com/view/ltBGWc">here</a>.</p>
+<p>Why oversampling / undersampling can happen on the same straight line that is parallel to the y axis unfortunately escapes me, the only thing I can think of is there may be subtle differences in the vertex positions and it isn&rsquo;t actually parallel to the y axis.</p>
+<h1 id="some-of-the-solutions-out-there">Some of the solutions out there</h1>
+<p>So what can we do to fix these artifacts? Well most likely when making a game, your pixel art sprites fit within the same sort of dimensions, ie 32x32 and 64x32, essentially keeping the sprites in a similar sort of range in terms of their pixel densities on screen. So what some engines do, is they render the whole screen at a much lower resolution and snap vertices to the pixel grid. Then they upscale the whole scene at once by some integer factor, and add black bars where necessary. With this you get pixel perfect rendering. The only problems being, the presence of black bars, and the fact that the single pixel snapping at the original resolution is now bigger by the upscale factor, meaning that anything that moves freely with smooth motion now snaps to the next multiple of pixels, instead of 1,  creating significant jitter. If you are not interested in smooth motion and this is the behaviour you want.. job done! This <a href="https://youtu.be/QK9wym71F7s?si=oh_fljcqJZjibJ49">video</a> has some good examples of what this will look like, and provides a solution to camera jitter.</p>
+<p>However this isn&rsquo;t the behaviour you would want for something like a Shoot-em-Up (SHMUP), smooth motion of the sprites themselves is needed. There is one solution that could resolve this issue that I will discuss at the end, but I am yet to implement it so cannot comment on its efficacy and it requires a bit more work while having some visual trade offs.</p>
+<p>Lets say we do render the sprites at their full resolution onto a full resolution image buffer to preserve smooth motion. Is there a way we could keep the pixel as sharp as possible, and then perform some sort of anti aliasing to eliminate any nearest neighbour artifacts? It turns out there is!</p>
+<h1 id="a-potential-solution">A potential solution</h1>
+<p>The key is to actually turn bilinear filtering back on. Of course if we just leave it at that, we will be left with blurry pixel art. What we want though is to turn off blending for pixels that fully sit within a single texel, then blend the pixels that sit between multiple texels based on how much of each texel they occupy. This is indeed possible to do with the following line of code by d7samurai:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-hlsl" data-lang="hlsl"><span style="display:flex;"><span><span style="color:#66d9ef">float2</span> pix <span style="color:#f92672">=</span> floor(p.tex) <span style="color:#f92672">+</span> min(frac(p.tex) <span style="color:#f92672">/</span> fwidth(p.tex), <span style="color:#ae81ff">1</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5</span>;
+</span></span></code></pre></div><p>Of course it is possible to come up with your own solution based on the bilinear filter equation and I highly recommend watching the video by Casey Muratori I linked at the beginning of the article for a deeper understanding. But in short, if you set your UV coordinates just right (the centre of a texel), the bilinear filtering equation will collapse and you will be left with a single colour, essentially turning off the bilinear filter. This is what you would do when a pixel sits fully within a texel. However when a pixel covers multiple texels, that is when we let the bilinear filter do its work.</p>
+<p>The above line of code is actually designed to be used in the HLSL shading language and it is important to note is that the operations are working on two values at once, both the x and y dimensions, which is made clear by the <code>float2</code> type of <code>pix</code>. Essentially you can treat it the same way you treat vector maths.</p>
+<p>First of all <code>pix</code> is actually just the modified texel coordinate which we then divide by the texture resolution to get the output UV, and <code>tex</code> is the original texel coordinate from the input UV. <code>floor</code> simply discards the fractional component of a number, and <code>frac</code> discards the integer component. <code>fwidth</code> is a bit more complicated, but essentially in this case it gives us information on how the texel coordinate changes between this pixel and the next. The reason this works is due to GPUs processing batches of pixels together, 2x2 being the commonly cited value. So what this tell us is the value of how much of a texel a single pixel takes. The <code>min</code> function, naturally, installs Gentoo onto your machine.</p>
+<p>For a first example, lets say our texel coordinate is 10.6. First we floor the texel coordinate to get 10. Then we take the fractional component, 0.6 and divide it by the size of a pixel relative to a texel. Lets say it is 0.4. So then we do 0.6 / 0.4 which is 1.5. We then take the minimum of this and 1, which is 1. Finally we subtract 0.5 and we end up with 10.5. This is the exact centre of the texel which will cancel out bilinear filtering. This makes sense as our pixel is fully encompassed within the sprite texel.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-hlsl" data-lang="hlsl"><span style="display:flex;"><span>floor(<span style="color:#ae81ff">10.6</span>) <span style="color:#f92672">+</span> min(frac(<span style="color:#ae81ff">10.6</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">0.4</span>, <span style="color:#ae81ff">1.0</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">10.0</span> <span style="color:#f92672">+</span> min(<span style="color:#ae81ff">0.6</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">0.4</span>, <span style="color:#ae81ff">1.0</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">10.0</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1.0</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">10.5</span>
+</span></span></code></pre></div><p>For our second example, lets keep everything the same, but now our texel coordinate is 10.3. Again we take the floor which is 10. Then we take the fractional component, 0.3 and divide it by the pixel width, 0.4 to get 0.75. This is less than one, so we set our value to 0.75, then we take away 0.5 leaving us with a final value of 10.25. Now we will no longer be sampling exactly in the middle of texel 10.0 because the pixel partially overlaps the previous texel, and so some bilinear filter will be applied.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-hlsl" data-lang="hlsl"><span style="display:flex;"><span>floor(<span style="color:#ae81ff">10.3</span>) <span style="color:#f92672">+</span> min(frac(<span style="color:#ae81ff">10.3</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">0.4</span>, <span style="color:#ae81ff">1.0</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">10.0</span> <span style="color:#f92672">+</span> min(<span style="color:#ae81ff">0.3</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">0.4</span>, <span style="color:#ae81ff">1.0</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">10.0</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.75</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">10.25</span>
+</span></span></code></pre></div><p>So why the value of 10.25? Remember, a value of x.5 means no blending and only pick the colour from texel x, also remember that we have a pixel size of 0.4 relative to a texel. At a texel coordinate of 10.3, 75% of our pixel is closer to texel 10.5 than texel 9.5 so we want to blend at that ratio and 10.25 is 75% of the way to 10.5 from 9.5. At least, that is the the pattern I noticed when plugging different numbers into the formula.</p>
+<p>Of course the actual solution applies across 2 dimensions instead of 1.</p>
+<p>It is important to note that a prerequisite of this is something known as &ldquo;pre-multiplied alpha&rdquo;. Essentially this involves multiplying the other colour channels by the alpha channel ourselves. To demonstrate why this is necessary when using this technique take a look at the following image:</p>
+<p><img src="images/broken_alpha.avif" alt="translucent sprite"></p>
+<p>&ldquo;Okay, so you reduced the value of the alpha component, what is the issue?&rdquo; This issue is this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-hlsl" data-lang="hlsl"><span style="display:flex;"><span>tex.a <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span></code></pre></div><p>The sprite should not be appearing at all, clearly something has gone wrong with the filtering. I don&rsquo;t know why exactly this happens.</p>
+<p>To fix this, in your API&rsquo;s blend configuration, set your source colour blend factor to <code>one</code> , and your destination colour blend factor to <code>one minus source alpha</code>. In Vulkan this is:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-C++" data-lang="C++"><span style="display:flex;"><span>vk<span style="color:#f92672">::</span>PipelineColorBlendAttachmentState{}
+</span></span><span style="display:flex;"><span>    .setBlendEnable(true)
+</span></span><span style="display:flex;"><span>    .setSrcColorBlendFactor(vk<span style="color:#f92672">::</span>BlendFactor<span style="color:#f92672">::</span>eOne)
+</span></span><span style="display:flex;"><span>    .setDstColorBlendFactor(vk<span style="color:#f92672">::</span>BlendFactor<span style="color:#f92672">::</span>eOneMinusSrcAlpha)
+</span></span><span style="display:flex;"><span>    ...
+</span></span></code></pre></div><p>In the shader write:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-hlsl" data-lang="hlsl"><span style="display:flex;"><span>tex.rgb <span style="color:#f92672">*=</span> tex.a;
+</span></span></code></pre></div><p>Then you will have a correctly invisible sprite:</p>
+<p><img src="images/correct_alpha.avif" alt="invisible (transparent) sprite"></p>
+<p>After applying all previous steps, your final fragment shader code might look something like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-hlsl" data-lang="hlsl"><span style="display:flex;"><span>[shader(<span style="color:#e6db74">&#34;fragment&#34;</span>)]
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">float4</span> fragMain(VertexOutput inVert) <span style="color:#f92672">:</span> <span style="color:#a6e22e">SV_Target</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">Texture2D</span> <span style="color:#66d9ef">texture</span> <span style="color:#f92672">=</span> textures[NonUniformResourceIndex(pconstants.texture_idx)];
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">float2</span> dims;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">texture</span>.GetDimensions(dims.x, dims.y);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">float2</span> tex_pos <span style="color:#f92672">=</span> inVert.uv <span style="color:#f92672">*</span> dims;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">float2</span> pix <span style="color:#f92672">=</span> floor(tex_pos) <span style="color:#f92672">+</span> min(frac(tex_pos) <span style="color:#f92672">/</span> fwidth(tex_pos), <span style="color:#ae81ff">1</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">float4</span> tex <span style="color:#f92672">=</span> <span style="color:#66d9ef">texture</span>.Sample(<span style="color:#66d9ef">sampler</span>, pix <span style="color:#f92672">/</span> dims);
+</span></span><span style="display:flex;"><span>    tex.rgb <span style="color:#f92672">*=</span> tex.a;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> tex;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>This is technically Slang shader code, so I can&rsquo;t guarantee it will work 1 for 1 if you are using HLSL.</p>
+<p>And now, we have our final result&hellip;.</p>
+<p><img src="images/aa_ship.avif" alt="pixel art sprite with no aliasing and minor blur"></p>
+<p>A little blurry but it works! The blur may not be entirely visible due to image compression, but if you perform this fix with your own sprites, you will be able to see it if you look closely enough.</p>
+<h1 id="the-unfortunate-reason-for-why-i-wont-be-using-this-solution">The unfortunate reason for why I won&rsquo;t be using this solution</h1>
+<p>Unfortunately there was just one problem for me. The solution provided by d7samurai does not have a license, and I don&rsquo;t posses the mathematical skill required to derive my own performant solution. d7samurai did mention in one of their newer GitHub gists they are fine with people using their solution with accreditation when another GitHub user asked for a license, however this isn&rsquo;t really a strong enough guarantee to go into what will be an open source project licensed under Apache 2.0.</p>
+<p>Instead I plan to take an alternate route with my own pixel art rendering. I will take in a base resolution, and an integer scale factor. The base resolution along with the scale factor dictates how large sprites would look with that resolution. Then I will apply an additional scale factor to bring that base resolution up to the screen resolution. However everything will still be rendered at full resolution, these factors will instead apply to the orthographic projection matrix to simulate the resolution scaling, eliminating the multi-pixel jitter problem.</p>
+<p>There are a couple issues with this approach. Firstly, not all base resolutions will scale perfectly into the current screen resolution, so I intend to add the option to choose between black bars and an increased field of view for the resolutions that don&rsquo;t fit perfectly. Personally I would go with the black bars for odd aspect ratios. The second problem is that there will still be some sprite wobble / shimmer / nearest neighbour artifacts due to sub-pixel motion. I will add an option to snap vertices to the nearest pixel, but for the game I am working on, smooth motion is preferred and I don&rsquo;t think the movement artifacts will be too noticeable due to the fast pace of the game.</p>
+<h1 id="closing-thoughts">Closing thoughts</h1>
+<p>Although I won&rsquo;t be using the main solution described in this article, I still think it is incredibly interesting which is why I decided to write an article about it. In any case, I think I am a bit fed up with trying to render pixel art perfectly!</p>
+<p>I forgot to mention previously that my engine is no longer an engine, but is now a framework. The reason for this choice being the greater freedom to make changes on a game by game basis, and the reduction in scope, saving me a lot of time. I won&rsquo;t write another article for a while, as I will put all of my focus into building my framework and first game, see you when it&rsquo;s done!</p>
+
+    </div>
+    <footer class="content__footer"></footer>
+
+            </section>
+
+            <section class="page__aside">
+                <div class="aside__about">
+
+<ul class="aside__social-links">
+    
+</ul>
+</div>
+                <hr>
+                <div class="aside__content">
+    
+    
+        <p>
+            By Xavier, 
+            2026-05-13
+        </p>
+    
+
+    
+
+                </div>
+            </section>
+
+            <footer class="page__footer"><p>
+    
+    
+    
+    
+    
+    
+      
+    
+      
+    
+    
+    
+      
+      
+          
+            
+            
+                <br/><span class="active">$ echo $LANG<br/><b></b></span><br/>
+
+            
+          
+      
+    
+</p>
+<br /><br />
+<p class="copyright">© XavierCS</p>
+<p class="advertisement">Powered by <a href="https://gohugo.io/">hugo</a> and <a href="https://github.com/joeroe/risotto">risotto</a>.</p>
+</footer>
+
+        </div>
+    </body>
+
+</html>
