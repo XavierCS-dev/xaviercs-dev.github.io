@@ -21,7 +21,7 @@ This presents another issue:
 
 ![Sprite with uneven texels](images/distorted_sprite.webp)
 
-If you look closely you can see that some parts of the sprite look like they are experiencing some sort of aliasing along straight edges. The reason for this is sub-pixel movement. Essentially the actual coordinates of the the sprite's vertices after their transformation don't actually line up with the pixel grid and land somewhere between those pixels. It might look something like this:
+If you look closely you can see that some parts of the sprite look like they are experiencing some sort of aliasing along straight edges. The reason for this is sub-pixel movement and non-integer scaling. Essentially the actual coordinates of the the sprite's vertices after their transformation don't actually line up with the pixel grid and land somewhere between those pixels. It might look something like this:
 
 ![sprite texels unaligned with display pixel](images/subpixel_movement.avif)
 
