@@ -3,4 +3,4 @@ draft: "false"
 layout: home
 ---
 
-Test
+Please click on "posts" to view my articles.
