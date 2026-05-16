@@ -142,4 +142,4 @@ Although I won't be using the main solution described in this article, I still t
 
 I forgot to mention previously that my engine is no longer an engine, but is now a framework. The reason for this choice being the greater freedom to make changes on a game by game basis, and the reduction in scope, saving me a lot of time. I won't write another article for a while, as I will put all of my focus into building my framework and first game, see you when it's done!
 
-If you notices any mistakes in this article, please create an issue [here](https://github.com/XavierCS-dev/xaviercs-dev.github.io/issues).
+If you notice any mistakes in this article, please create an issue [here](https://github.com/XavierCS-dev/xaviercs-dev.github.io/issues).
