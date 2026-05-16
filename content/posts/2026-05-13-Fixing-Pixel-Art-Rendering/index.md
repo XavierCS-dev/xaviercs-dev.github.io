@@ -21,11 +21,11 @@ This presents another issue:
 
 ![Sprite with uneven texels](images/distorted_sprite.webp)
 
-If you look closely you can see that some parts of the sprite look like they are experiencing some sort of aliasing along straight edges. The reason for this is sub-pixel movement and non-integer scaling. Essentially the actual coordinates of the the sprite's vertices after their transformation don't actually line up with the pixel grid and land somewhere between those pixels. It might look something like this:
+If you look closely you can see that parts of the sprite appear to be experiencing aliasing along some of the straight edges. The reason for this is sub-pixel movement and non-integer scaling. Essentially, the actual coordinates of the sprite's vertices after their transformation don't line up with the pixel grid and land somewhere between those pixels. It might look something like this:
 
 ![sprite texels unaligned with display pixel](images/subpixel_movement.avif)
 
-Nearest neighbour sampling then takes the nearest texel to the pixel centre and uses that as the sample colour.  However this leads to the sprite being distorted as now the dimensions have been altered beyond what was in the original pixel art. In our case we wanted only part of the pixel to be set to the colour we wanted, not the whole pixel, but of course, this isn't actually possible. This can lead to a shimmer effect when transforming sprites as the pixels swap between being under and oversampled. A good demonstration of this can be found [here](https://www.shadertoy.com/view/ltBGWc).
+Nearest neighbour sampling then takes the nearest texel to the pixel centre and uses that as the sample colour.  However, this leads to the sprite being distorted as now the dimensions have been altered beyond what was in the original pixel art. In our case we wanted only part of the pixel to be set to the colour we wanted, not the whole pixel, but of course, this isn't actually possible. This can lead to a shimmer effect when transforming sprites as the pixels swap between being under and oversampled. A good demonstration of this can be found [here](https://www.shadertoy.com/view/ltBGWc).
 
 Why oversampling / undersampling can happen on the same straight line that is parallel to the y axis unfortunately escapes me, the only thing I can think of is there may be subtle differences in the vertex positions and it isn't actually parallel to the y axis.
 # Some of the solutions out there
