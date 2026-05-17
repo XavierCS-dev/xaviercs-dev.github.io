@@ -34,7 +34,7 @@ So what can we do to fix these artifacts? Well most likely when making a game, y
 
 However this isn't the behaviour you would want for something like a Shoot-em-Up (SHMUP), smooth motion of the sprites themselves is needed. There is one solution that could resolve this issue that I will discuss at the end, but I am yet to implement it so cannot comment on its efficacy and it requires a bit more work while having some visual trade offs.
 
-Lets say we do render the sprites at their full resolution onto a full resolution image buffer to preserve smooth motion. Is there a way we could keep the pixel as sharp as possible, and then perform some sort of anti aliasing to eliminate any nearest neighbour artifacts? It turns out there is!
+Let's say we do render the sprites at their full resolution onto a full resolution image buffer to preserve smooth motion. Is there a way we could keep the pixel as sharp as possible, and then perform some sort of anti aliasing to eliminate any nearest neighbour artifacts? It turns out there is!
 
 # A potential solution
 
@@ -50,7 +50,7 @@ The above line of code is actually designed to be used in the HLSL shading langu
 
 First of all `pix` is actually just the modified texel coordinate which we then divide by the texture resolution to get the output UV, and `tex` is the original texel coordinate from the input UV. `floor` simply discards the fractional component of a number, and `frac` discards the integer component. `fwidth` is a bit more complicated, but essentially in this case it gives us information on how the texel coordinate changes between this pixel and the next. The reason this works is due to GPUs processing batches of pixels together, 2x2 being the commonly cited value. So what this tell us is the value of how much of a texel a single pixel takes. The `min` function, naturally, installs Gentoo onto your machine.
 
-For a first example, lets say our texel coordinate is 10.6. First we floor the texel coordinate to get 10. Then we take the fractional component, 0.6 and divide it by the size of a pixel relative to a texel. Lets say it is 0.4. So then we do 0.6 / 0.4 which is 1.5. We then take the minimum of this and 1, which is 1. Finally we subtract 0.5 and we end up with 10.5. This is the exact centre of the texel which will cancel out bilinear filtering. This makes sense as our pixel is fully encompassed within the sprite texel.
+For a first example, let's say our texel coordinate is 10.6. First we floor the texel coordinate to get 10. Then we take the fractional component, 0.6 and divide it by the size of a pixel relative to a texel. Let's say it is 0.4. So then we do 0.6 / 0.4 which is 1.5. We then take the minimum of this and 1, which is 1. Finally we subtract 0.5 and we end up with 10.5. This is the exact centre of the texel which will cancel out bilinear filtering. This makes sense as our pixel is fully encompassed within the sprite texel.
 
 ```hlsl
 floor(10.6) + min(frac(10.6) / 0.4, 1.0) - 0.5 =
@@ -59,7 +59,7 @@ floor(10.6) + min(frac(10.6) / 0.4, 1.0) - 0.5 =
 10.5
 ```
 
-For our second example, lets keep everything the same, but now our texel coordinate is 10.3. Again we take the floor which is 10. Then we take the fractional component, 0.3 and divide it by the pixel width, 0.4 to get 0.75. This is less than one, so we set our value to 0.75, then we take away 0.5 leaving us with a final value of 10.25. Now we will no longer be sampling exactly in the middle of texel 10.0 because the pixel partially overlaps the previous texel, and so some bilinear filter will be applied. 
+For our second example, let's keep everything the same, but now our texel coordinate is 10.3. Again we take the floor which is 10. Then we take the fractional component, 0.3 and divide it by the pixel width, 0.4 to get 0.75. This is less than one, so we set our value to 0.75, then we take away 0.5 leaving us with a final value of 10.25. Now we will no longer be sampling exactly in the middle of texel 10.0 because the pixel partially overlaps the previous texel, and so some bilinear filter will be applied. 
 
 ```hlsl
 floor(10.3) + min(frac(10.3) / 0.4, 1.0) - 0.5 =
@@ -68,7 +68,7 @@ floor(10.3) + min(frac(10.3) / 0.4, 1.0) - 0.5 =
 10.25
 ```
 
-So why the value of 10.25? Remember, a value of x.5 means no blending and only pick the colour from texel x, also remember that we have a pixel size of 0.4 relative to a texel. At a texel coordinate of 10.3, 75% of our pixel is closer to texel 10.5 than texel 9.5 so we want to blend at that ratio and 10.25 is 75% of the way to 10.5 from 9.5. At least, that is the the pattern I noticed when plugging different numbers into the formula.
+So why the value of 10.25? Remember, a value of x.5 means no blending and only pick the colour from texel x, also remember that we have a pixel size of 0.4 relative to a texel. At a texel coordinate of 10.3, 75% of our pixel is closer to texel 10.5 than texel 9.5 so we want to blend at that ratio and 10.25 is 75% of the way to 10.5 from 9.5. At least, that is the pattern I noticed when plugging different numbers into the formula.
 
 Of course the actual solution applies across 2 dimensions instead of 1.
 
