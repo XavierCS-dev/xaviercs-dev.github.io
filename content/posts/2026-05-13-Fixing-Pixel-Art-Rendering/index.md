@@ -4,6 +4,8 @@ date: 2026-05-13
 author: Xavier
 excerpt: Exploring blending as a way to allow arbitrary scaling and subpixel motion on pixel art sprites without nearest neighbour artifacts and minimal blur
 ---
+UPDATE: I plan on republishing this article to make some corrections and tie up loose ends.
+
 This article is primarily based on works by [Casey Muratori](https://www.youtube.com/watch?v=Yu8k7a1hQuU&t=2908s) and [d7samurai](https://gist.github.com/d7samurai/9f17966ba6130a75d1bfb0f1894ed377). I highly recommend checking out the original sources if you want a more precise understanding of how this technique works.
 
 It is important to note the following definitions before reading the article: A pixel is a small unit of colour information that is a part of your display. A texel is a small unit of colour information that is a part of a texture or image. A texel can be made from multiple pixels and vice versa. We will be talking about the case where texels are bigger than pixels, magnification. The opposite case is known as minification.
